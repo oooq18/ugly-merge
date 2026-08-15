@@ -166,9 +166,10 @@
     aspect-ratio: 1 / 1.1;
   }
   .collection-photo {
-    width: 100%; aspect-ratio: 1; border-radius: 50%;
+    width: 100%; aspect-ratio: 1 / 1; border-radius: 50%;
     overflow: hidden; background: #1a1a1a;
     border: 2px solid #2a2a2a;
+    flex-shrink: 0; min-height: 0;
   }
   .collection-photo img { width: 100%; height: 100%; object-fit: cover; }
   .collection-photo.locked {
@@ -402,10 +403,13 @@ function showCollection() {
   renderCollection();
   showScreen('collection');
 }
+function getDownloadPath(charLevel, level) {
+  return 'dl_' + charLevel + level + '.jpg';
+}
 function downloadPhoto(cl, level) {
   if (!isUnlocked(cl, level)) return;
   const a = document.createElement('a');
-  a.href = getPhotoPath(cl, level);
+  a.href = getDownloadPath(cl, level);
   a.download = (cl === 'ma' ? '老马' : '老胖') + '帅照' + level + '.jpg';
   document.body.appendChild(a);
   a.click();
@@ -681,56 +685,12 @@ function toggleSound() {
   document.getElementById('soundOffIcon').style.display = soundEnabled ? 'none' : '';
 }
 function savePoster() {
-  const img = new Image();
-  img.onload = function() {
-    const w = 800, h = 1200;
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    const cx = c.getContext('2d');
-    cx.fillStyle = '#0a0a0a';
-    cx.fillRect(0, 0, w, h);
-    cx.fillStyle = '#fff';
-    cx.font = 'bold 48px -apple-system, sans-serif';
-    cx.textAlign = 'center';
-    cx.fillText('帅照合成大作战', w/2, 100);
-    cx.font = '20px -apple-system, sans-serif';
-    cx.fillStyle = '#888';
-    cx.fillText((currentCharacter === 'ma' ? '老马' : '老胖') + '终极形态', w/2, 140);
-    const photoR = 220;
-    const photoY = 420;
-    cx.save();
-    cx.beginPath();
-    cx.arc(w/2, photoY, photoR, 0, Math.PI * 2);
-    cx.closePath();
-    cx.clip();
-    const iw = img.naturalWidth, ih = img.naturalHeight;
-    const scale = Math.max(photoR * 2 / iw, photoR * 2 / ih);
-    const dw = iw * scale, dh = ih * scale;
-    cx.drawImage(img, w/2 - dw/2, photoY - dh/2, dw, dh);
-    cx.restore();
-    cx.strokeStyle = '#fff';
-    cx.lineWidth = 6;
-    cx.beginPath();
-    cx.arc(w/2, photoY, photoR, 0, Math.PI * 2);
-    cx.stroke();
-    cx.fillStyle = '#fff';
-    cx.font = 'bold 80px -apple-system, sans-serif';
-    cx.fillText(score, w/2, 800);
-    cx.font = '24px -apple-system, sans-serif';
-    cx.fillStyle = '#666';
-    cx.fillText('最终得分', w/2, 840);
-    cx.font = '18px -apple-system, sans-serif';
-    cx.fillStyle = '#555';
-    cx.fillText('帅照合成大作战 · 已解锁图鉴', w/2, h - 60);
-    const a = document.createElement('a');
-    a.download = '帅照合成_' + (currentCharacter === 'ma' ? '老马' : '老胖') + '_' + score + '分.png';
-    a.href = c.toDataURL('image/png');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-  img.onerror = function() { alert('海报生成失败，请检查图片加载'); };
-  img.src = getPhotoPath(currentCharacter, 7) + '?t=' + Date.now();
+  const a = document.createElement('a');
+  a.href = getPhotoPath(currentCharacter, 7);
+  a.download = (currentCharacter === 'ma' ? '老马' : '老胖') + '终极帅照.jpg';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 window.addEventListener('resize', () => {
   if (currentScreen === 'game') { resizeCanvas(); }
