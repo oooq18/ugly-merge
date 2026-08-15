@@ -8,568 +8,94 @@
     <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js">
     </script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #0a0a0a;
-            color: #f5f5f5;
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
-        }
-        #app {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-            overflow: hidden;
-        }
-        .screen {
-            position: absolute;
-            inset: 0;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
-        }
-        .screen.active {
-            display: flex;
-        }
-
-        /* ===== 加载界面 ===== */
-        #loading {
-            justify-content: center;
-            gap: 32px;
-            background: #0a0a0a;
-            z-index: 100;
-        }
-        .loading-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 28px;
-            width: 100%;
-            max-width: 360px;
-        }
-        .loading-title {
-            font-size: clamp(32px, 9vw, 56px);
-            font-weight: 800;
-            letter-spacing: 2px;
-            background: linear-gradient(135deg, #fff 0%, #999 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-align: center;
-            line-height: 1.2;
-        }
-        .loading-sub {
-            font-size: 14px;
-            color: #666;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-top: -12px;
-        }
-        .loading-bar-wrap {
-            width: 100%;
-            height: 6px;
-            background: #1a1a1a;
-            border-radius: 4px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-        }
-        .loading-bar {
-            height: 100%;
-            width: 0%;
-            border-radius: 4px;
-            background: linear-gradient(90deg, #666, #fff);
-            transition: width 0.25s ease-out;
-        }
-        .loading-percent {
-            font-size: 18px;
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
-            letter-spacing: 1px;
-            color: #aaa;
-        }
-        .loading-hint {
-            font-size: 12px;
-            color: #555;
-            text-align: center;
-            line-height: 1.6;
-            letter-spacing: 0.5px;
-            padding: 0 8px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-            padding-top: 20px;
-            margin-top: 4px;
-        }
-        .loading-hint span {
-            color: #777;
-        }
-        .loading-spinner {
-            width: 32px;
-            height: 32px;
-            border: 2px solid rgba(255, 255, 255, 0.06);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-top: -4px;
-        }
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* ===== 主界面 ===== */
-        #home {
-            justify-content: center;
-            gap: 48px;
-        }
-        .game-title {
-            font-size: clamp(32px, 9vw, 56px);
-            font-weight: 800;
-            letter-spacing: 2px;
-            background: linear-gradient(135deg, #fff 0%, #999 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-align: center;
-            line-height: 1.2;
-        }
-        .game-subtitle {
-            font-size: 14px;
-            color: #666;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-top: -24px;
-        }
-        .home-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            width: 100%;
-            max-width: 320px;
-        }
-        .btn {
-            width: 100%;
-            padding: 16px 24px;
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            color: #f5f5f5;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            letter-spacing: 1px;
-        }
-        .btn:hover {
-            background: #252525;
-            border-color: #3a3a3a;
-        }
-        .btn:active {
-            transform: scale(0.97);
-        }
-        .btn-primary {
-            background: #fff;
-            color: #0a0a0a;
-            border-color: #fff;
-        }
-        .btn-primary:hover {
-            background: #e5e5e5;
-            border-color: #e5e5e5;
-        }
-        .btn-ghost {
-            background: transparent;
-            border: 1px solid #333;
-        }
-
-        /* ===== 关卡选择 ===== */
-        #levelSelect {
-            justify-content: flex-start;
-            padding-top: 60px;
-            gap: 24px;
-            overflow-y: auto;
-        }
-        .section-title {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 1px;
-        }
-        .level-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            width: 100%;
-            max-width: 400px;
-            padding-bottom: 20px;
-        }
-        .level-card {
-            background: #141414;
-            border: 1px solid #222;
-            border-radius: 16px;
-            padding: 24px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .level-card:hover {
-            background: #1a1a1a;
-            border-color: #333;
-        }
-        .level-card:active {
-            transform: scale(0.98);
-        }
-        .level-card.disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-        .level-card .level-avatar {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: #222;
-            flex-shrink: 0;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-        }
-        .level-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .level-info {
-            flex: 1;
-        }
-        .level-name {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        .level-desc {
-            font-size: 13px;
-            color: #888;
-        }
-        .level-arrow {
-            color: #555;
-            font-size: 20px;
-        }
-
-        /* ===== 游戏界面 ===== */
-        #game {
-            padding: 0;
-        }
-        .game-topbar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 10;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: calc(env(safe-area-inset-top) + 12px) 16px 12px 16px;
-            background: linear-gradient(to bottom, rgba(10, 10, 10, 0.95) 0%, rgba(10, 10, 10, 0) 100%);
-            pointer-events: none;
-        }
-        .game-topbar>* {
-            pointer-events: auto;
-        }
-        .icon-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            cursor: pointer;
-            font-size: 16px;
-            backdrop-filter: blur(10px);
-            transition: all 0.15s ease;
-        }
-        .icon-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-        .icon-btn:active {
-            transform: scale(0.9);
-        }
-        .score-box {
-            text-align: right;
-        }
-        .score-label {
-            font-size: 11px;
-            color: #888;
-            letter-spacing: 1px;
-        }
-        .score-value {
-            font-size: 24px;
-            font-weight: 800;
-            font-variant-numeric: tabular-nums;
-        }
-        .next-box {
-            position: absolute;
-            top: calc(env(safe-area-inset-top) + 70px);
-            right: 16px;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            pointer-events: none;
-        }
-        .next-label {
-            font-size: 10px;
-            color: #666;
-            letter-spacing: 1px;
-        }
-        .next-ball {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 2px solid rgba(255, 255, 255, 0.15);
-        }
-        .next-ball img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        #gameCanvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            background: #0a0a0a;
-        }
-        .game-overlay {
-            position: absolute;
-            inset: 0;
-            z-index: 20;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(20px);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 32px;
-            gap: 24px;
-        }
-        .game-overlay.show {
-            display: flex;
-        }
-        .overlay-title {
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: 2px;
-        }
-        .overlay-score {
-            font-size: 48px;
-            font-weight: 900;
-            background: linear-gradient(135deg, #fff 0%, #888 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .final-photo {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 4px solid #fff;
-            box-shadow: 0 20px 60px rgba(255, 255, 255, 0.2);
-        }
-        .final-photo img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .overlay-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            width: 100%;
-            max-width: 280px;
-        }
-
-        /* ===== 图鉴 ===== */
-        #collection {
-            padding: 0 20px calc(env(safe-area-inset-bottom) + 20px) 20px;
-        }
-        .collection-header {
-            width: 100%;
-            max-width: 500px;
-            padding: calc(env(safe-area-inset-top) + 16px) 0 16px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-shrink: 0;
-        }
-        .collection-title {
-            font-size: 20px;
-            font-weight: 700;
-            flex: 1;
-            text-align: center;
-            margin-right: 40px;
-        }
-        .tabs {
-            width: 100%;
-            max-width: 500px;
-            display: flex;
-            gap: 0;
-            margin-bottom: 20px;
-            background: #141414;
-            border-radius: 10px;
-            padding: 4px;
-            flex-shrink: 0;
-        }
-        .tab {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: #777;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .tab.active {
-            background: #fff;
-            color: #0a0a0a;
-        }
-        .collection-grid {
-            width: 100%;
-            max-width: 500px;
-            flex: 1;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            padding-bottom: 30px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            align-content: start;
-        }
-        .collection-item {
-            background: #141414;
-            border: 1px solid #222;
-            border-radius: 14px;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-        .collection-photo {
-            width: 100%;
-            aspect-ratio: 1/1;
-            border-radius: 50%;
-            overflow: hidden;
-            background: #1a1a1a;
-            border: 2px solid #2a2a2a;
-            flex-shrink: 0;
-        }
-        .collection-photo img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .collection-photo.locked {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: #333;
-            font-weight: 900;
-        }
-        .collection-info {
-            text-align: center;
-            flex-shrink: 0;
-            width: 100%;
-        }
-        .collection-level {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 2px;
-        }
-        .collection-name {
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .download-btn {
-            padding: 6px 14px;
-            font-size: 12px;
-            background: #1f1f1f;
-            border: 1px solid #333;
-            color: #ccc;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            flex-shrink: 0;
-            width: 100%;
-        }
-        .download-btn:hover {
-            background: #2a2a2a;
-            color: #fff;
-        }
-        .download-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        .collection-grid::-webkit-scrollbar {
-            width: 4px;
-        }
-        .collection-grid::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .collection-grid::-webkit-scrollbar-thumb {
-            background: #333;
-            border-radius: 2px;
-        }
-
-        /* ===== 响应式 ===== */
-        @media (max-width: 420px) {
-            .loading-title {
-                font-size: 28px;
-            }
-            .level-card {
-                padding: 16px;
-                gap: 14px;
-            }
-            .level-avatar {
-                width: 48px;
-                height: 48px;
-                font-size: 20px;
-            }
-            .level-name {
-                font-size: 15px;
-            }
-            .collection-grid {
-                gap: 12px;
-                padding-bottom: 20px;
-            }
-        }
+        /* ===== 完整样式（与之前相同，此处省略以节省篇幅，实际代码包含全部样式） ===== */
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html,body { width:100%; height:100%; overflow:hidden; background:#0a0a0a; color:#f5f5f5; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Helvetica,Arial,sans-serif; user-select:none; -webkit-user-select:none; touch-action:none; }
+        #app { width:100vw; height:100vh; position:relative; overflow:hidden; }
+        .screen { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px; }
+        .screen.active { display:flex; }
+        #loading { justify-content:center; gap:32px; background:#0a0a0a; z-index:100; }
+        .loading-content { display:flex; flex-direction:column; align-items:center; gap:28px; width:100%; max-width:360px; }
+        .loading-title { font-size:clamp(32px,9vw,56px); font-weight:800; letter-spacing:2px; background:linear-gradient(135deg,#fff 0%,#999 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; text-align:center; line-height:1.2; }
+        .loading-sub { font-size:14px; color:#666; letter-spacing:4px; text-transform:uppercase; margin-top:-12px; }
+        .loading-bar-wrap { width:100%; height:6px; background:#1a1a1a; border-radius:4px; overflow:hidden; position:relative; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05); }
+        .loading-bar { height:100%; width:0%; border-radius:4px; background:linear-gradient(90deg,#666,#fff); transition:width 0.25s ease-out; }
+        .loading-percent { font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:1px; color:#aaa; }
+        .loading-hint { font-size:12px; color:#555; text-align:center; line-height:1.6; letter-spacing:0.5px; padding:0 8px; border-top:1px solid rgba(255,255,255,0.06); padding-top:20px; margin-top:4px; }
+        .loading-hint span { color:#777; }
+        .loading-spinner { width:32px; height:32px; border:2px solid rgba(255,255,255,0.06); border-top-color:#fff; border-radius:50%; animation:spin 1s linear infinite; margin-top:-4px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        #home { justify-content:center; gap:48px; }
+        .game-title { font-size:clamp(32px,9vw,56px); font-weight:800; letter-spacing:2px; background:linear-gradient(135deg,#fff 0%,#999 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; text-align:center; line-height:1.2; }
+        .game-subtitle { font-size:14px; color:#666; letter-spacing:4px; text-transform:uppercase; margin-top:-24px; }
+        .home-buttons { display:flex; flex-direction:column; gap:16px; width:100%; max-width:320px; }
+        .btn { width:100%; padding:16px 24px; background:#1a1a1a; border:1px solid #2a2a2a; color:#f5f5f5; font-size:16px; font-weight:600; border-radius:12px; cursor:pointer; transition:all 0.2s ease; letter-spacing:1px; }
+        .btn:hover { background:#252525; border-color:#3a3a3a; }
+        .btn:active { transform:scale(0.97); }
+        .btn-primary { background:#fff; color:#0a0a0a; border-color:#fff; }
+        .btn-primary:hover { background:#e5e5e5; border-color:#e5e5e5; }
+        .btn-ghost { background:transparent; border:1px solid #333; }
+        #levelSelect { justify-content:flex-start; padding-top:60px; gap:24px; overflow-y:auto; }
+        .section-title { font-size:24px; font-weight:700; letter-spacing:1px; }
+        .level-list { display:flex; flex-direction:column; gap:16px; width:100%; max-width:400px; padding-bottom:20px; }
+        .level-card { background:#141414; border:1px solid #222; border-radius:16px; padding:24px; display:flex; align-items:center; gap:20px; cursor:pointer; transition:all 0.2s ease; }
+        .level-card:hover { background:#1a1a1a; border-color:#333; }
+        .level-card:active { transform:scale(0.98); }
+        .level-card.disabled { opacity:0.5; pointer-events:none; }
+        .level-card .level-avatar { width:64px; height:64px; border-radius:50%; background:#222; flex-shrink:0; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:28px; }
+        .level-avatar img { width:100%; height:100%; object-fit:cover; }
+        .level-info { flex:1; }
+        .level-name { font-size:18px; font-weight:700; margin-bottom:4px; }
+        .level-desc { font-size:13px; color:#888; }
+        .level-arrow { color:#555; font-size:20px; }
+        #game { padding:0; }
+        .game-topbar { position:absolute; top:0; left:0; right:0; z-index:10; display:flex; justify-content:space-between; align-items:center; padding:calc(env(safe-area-inset-top)+12px) 16px 12px 16px; background:linear-gradient(to bottom,rgba(10,10,10,0.95) 0%,rgba(10,10,10,0) 100%); pointer-events:none; }
+        .game-topbar>* { pointer-events:auto; }
+        .icon-btn { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; font-size:16px; backdrop-filter:blur(10px); transition:all 0.15s ease; }
+        .icon-btn:hover { background:rgba(255,255,255,0.15); }
+        .icon-btn:active { transform:scale(0.9); }
+        .score-box { text-align:right; }
+        .score-label { font-size:11px; color:#888; letter-spacing:1px; }
+        .score-value { font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; }
+        .next-box { position:absolute; top:calc(env(safe-area-inset-top)+70px); right:16px; z-index:10; display:flex; flex-direction:column; align-items:center; gap:4px; pointer-events:none; }
+        .next-label { font-size:10px; color:#666; letter-spacing:1px; }
+        .next-ball { width:44px; height:44px; border-radius:50%; overflow:hidden; border:2px solid rgba(255,255,255,0.15); }
+        .next-ball img { width:100%; height:100%; object-fit:cover; }
+        #gameCanvas { display:block; width:100%; height:100%; background:#0a0a0a; }
+        .game-overlay { position:absolute; inset:0; z-index:20; background:rgba(0,0,0,0.85); backdrop-filter:blur(20px); display:none; flex-direction:column; align-items:center; justify-content:center; padding:32px; gap:24px; }
+        .game-overlay.show { display:flex; }
+        .overlay-title { font-size:28px; font-weight:800; letter-spacing:2px; }
+        .overlay-score { font-size:48px; font-weight:900; background:linear-gradient(135deg,#fff 0%,#888 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+        .final-photo { width:180px; height:180px; border-radius:50%; overflow:hidden; border:4px solid #fff; box-shadow:0 20px 60px rgba(255,255,255,0.2); }
+        .final-photo img { width:100%; height:100%; object-fit:cover; }
+        .overlay-buttons { display:flex; flex-direction:column; gap:12px; width:100%; max-width:280px; }
+        #collection { padding:0 20px calc(env(safe-area-inset-bottom)+20px) 20px; }
+        .collection-header { width:100%; max-width:500px; padding:calc(env(safe-area-inset-top)+16px) 0 16px 0; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+        .collection-title { font-size:20px; font-weight:700; flex:1; text-align:center; margin-right:40px; }
+        .tabs { width:100%; max-width:500px; display:flex; gap:0; margin-bottom:20px; background:#141414; border-radius:10px; padding:4px; flex-shrink:0; }
+        .tab { flex:1; padding:10px; text-align:center; font-size:14px; font-weight:600; color:#777; border-radius:8px; cursor:pointer; transition:all 0.2s ease; }
+        .tab.active { background:#fff; color:#0a0a0a; }
+        .collection-grid { width:100%; max-width:500px; flex:1; display:grid; grid-template-columns:repeat(2,1fr); gap:16px; padding-bottom:30px; overflow-y:auto; -webkit-overflow-scrolling:touch; align-content:start; }
+        .collection-item { background:#141414; border:1px solid #222; border-radius:14px; padding:12px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+        .collection-photo { width:100%; aspect-ratio:1/1; border-radius:50%; overflow:hidden; background:#1a1a1a; border:2px solid #2a2a2a; flex-shrink:0; }
+        .collection-photo img { width:100%; height:100%; object-fit:cover; }
+        .collection-photo.locked { display:flex; align-items:center; justify-content:center; font-size:32px; color:#333; font-weight:900; }
+        .collection-info { text-align:center; flex-shrink:0; width:100%; }
+        .collection-level { font-size:12px; color:#666; margin-bottom:2px; }
+        .collection-name { font-size:14px; font-weight:600; }
+        .download-btn { padding:6px 14px; font-size:12px; background:#1f1f1f; border:1px solid #333; color:#ccc; border-radius:8px; cursor:pointer; transition:all 0.15s ease; flex-shrink:0; width:100%; }
+        .download-btn:hover { background:#2a2a2a; color:#fff; }
+        .download-btn:disabled { opacity:0.3; cursor:not-allowed; }
+        .collection-grid::-webkit-scrollbar { width:4px; }
+        .collection-grid::-webkit-scrollbar-track { background:transparent; }
+        .collection-grid::-webkit-scrollbar-thumb { background:#333; border-radius:2px; }
+        @media (max-width:420px) { .loading-title { font-size:28px; } .level-card { padding:16px; gap:14px; } .level-avatar { width:48px; height:48px; font-size:20px; } .level-name { font-size:15px; } .collection-grid { gap:12px; padding-bottom:20px; } }
     </style>
 </head>
 <body>
     <div id="app">
 
-        <!-- ===== 加载界面 ===== -->
+        <!-- 加载界面 -->
         <div id="loading" class="screen active">
             <div class="loading-content">
                 <div class="loading-title">帅照合成<br>大作战</div>
@@ -586,7 +112,7 @@
             </div>
         </div>
 
-        <!-- ===== 主界面 ===== -->
+        <!-- 主界面 -->
         <div id="home" class="screen">
             <div class="game-title">帅照合成<br>大作战</div>
             <div class="game-subtitle">Merge to Glory</div>
@@ -596,7 +122,7 @@
             </div>
         </div>
 
-        <!-- ===== 关卡选择 ===== -->
+        <!-- 关卡选择 -->
         <div id="levelSelect" class="screen">
             <div style="width:100%;max-width:400px;padding-top:60px;">
                 <button class="icon-btn" onclick="showScreen('home')" style="margin-bottom:20px;">
@@ -623,7 +149,7 @@
                     </div>
                     <div class="level-arrow">→</div>
                 </div>
-                <!-- 隐藏关卡（混合挑战，无鸡） -->
+                <!-- 混合挑战（无鸡） -->
                 <div class="level-card disabled" id="hiddenLevelCard" onclick="startGame('hidden')">
                     <div class="level-avatar" id="hiddenAvatar">🔒</div>
                     <div class="level-info">
@@ -632,9 +158,12 @@
                     </div>
                     <div class="level-arrow" id="hiddenArrow">🔒</div>
                 </div>
-                <!-- 鸡关卡（独立，需解锁） -->
+                <!-- 鸡关卡（独立） -->
                 <div class="level-card disabled" id="jiLevelCard" onclick="startGame('ji')">
-                    <div class="level-avatar" id="jiAvatar">🔒</div>
+                    <div class="level-avatar" id="jiAvatar">
+                        <!-- 这里动态插入 img 或锁 -->
+                        <span style="font-size:28px;">🔒</span>
+                    </div>
                     <div class="level-info">
                         <div class="level-name">第四关 · 鸡</div>
                         <div class="level-desc" id="jiLevelDesc">同时通关老马和老胖解锁</div>
@@ -644,7 +173,7 @@
             </div>
         </div>
 
-        <!-- ===== 游戏界面 ===== -->
+        <!-- 游戏界面 -->
         <div id="game" class="screen">
             <canvas id="gameCanvas"></canvas>
             <div class="game-topbar">
@@ -685,7 +214,7 @@
             </div>
         </div>
 
-        <!-- ===== 图鉴 ===== -->
+        <!-- 图鉴 -->
         <div id="collection" class="screen">
             <div class="collection-header">
                 <button class="icon-btn" onclick="showScreen('home')">
@@ -875,18 +404,16 @@
                 hiddenDesc.textContent = '双角色混合，挑战极限！';
                 hiddenArrow.textContent = '→';
                 hiddenAvatar.textContent = '⚡';
-                hiddenAvatar.style.background = 'transparent';
                 hiddenAvatar.style.fontSize = '32px';
             } else {
                 hiddenCard.classList.add('disabled');
                 hiddenDesc.textContent = '同时通关老马和老胖解锁';
                 hiddenArrow.textContent = '🔒';
                 hiddenAvatar.textContent = '🔒';
-                hiddenAvatar.style.background = 'transparent';
                 hiddenAvatar.style.fontSize = '28px';
             }
 
-            // 鸡关卡
+            // 鸡关卡（显示图片或锁）
             const jiCard = document.getElementById('jiLevelCard');
             const jiDesc = document.getElementById('jiLevelDesc');
             const jiArrow = document.getElementById('jiArrow');
@@ -895,16 +422,13 @@
                 jiCard.classList.remove('disabled');
                 jiDesc.textContent = '独立鸡关卡，合成最帅鸡照';
                 jiArrow.textContent = '→';
-                jiAvatar.textContent = '🐔';
-                jiAvatar.style.background = 'transparent';
-                jiAvatar.style.fontSize = '32px';
+                // 显示图片
+                jiAvatar.innerHTML = '<img src="ji4.jpg" alt="鸡" style="width:100%;height:100%;object-fit:cover;">';
             } else {
                 jiCard.classList.add('disabled');
                 jiDesc.textContent = '同时通关老马和老胖解锁';
                 jiArrow.textContent = '🔒';
-                jiAvatar.textContent = '🔒';
-                jiAvatar.style.background = 'transparent';
-                jiAvatar.style.fontSize = '28px';
+                jiAvatar.innerHTML = '<span style="font-size:28px;">🔒</span>';
             }
         }
 
@@ -965,12 +489,24 @@
             showScreen('collection');
         }
 
+        // ---------- 下载功能（展示图与下载图可不同） ----------
+        // ★★★ 您可以将下面的 getDownloadPath 改为指向独立的 dl_*.jpg 文件 ★★★
+        // 例如：return 'dl_' + cl + level + '.jpg';
+        // 如果该文件不存在，下载会失败，所以请确保您准备了对应的独立图片。
+        function getDownloadPath(cl, level) {
+            // 默认使用原图（但下载时文件名会改为 dl_*.jpg）
+            return getPhotoPath(cl, level);
+            // 如果您想使用独立图片，请取消下一行注释并注释掉上一行：
+            // return 'dl_' + cl + level + '.jpg';
+        }
+
         function downloadPhoto(cl, level) {
             if (!isUnlocked(cl, level)) return;
-            // 文件名格式 dl_ma1.jpg, dl_pang1.jpg, dl_ji1.jpg
+            const src = getDownloadPath(cl, level);
+            // 文件名支持 .jpeg 或 .jpg，这里统一用 .jpg，您可改为 .jpeg
             const filename = 'dl_' + cl + level + '.jpg';
             const a = document.createElement('a');
-            a.href = getPhotoPath(cl, level);
+            a.href = src;
             a.download = filename;
             document.body.appendChild(a);
             a.click();
