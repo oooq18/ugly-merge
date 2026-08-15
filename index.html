@@ -623,16 +623,7 @@
                     </div>
                     <div class="level-arrow">→</div>
                 </div>
-                <!-- 鸡 -->
-                <div class="level-card" onclick="startGame('ji')">
-                    <div class="level-avatar"><img src="ji4.jpg" alt="鸡"></div>
-                    <div class="level-info">
-                        <div class="level-name">第三关 · 鸡</div>
-                        <div class="level-desc">帅气鸡哥，合成最帅鸡照</div>
-                    </div>
-                    <div class="level-arrow">→</div>
-                </div>
-                <!-- 隐藏关卡 -->
+                <!-- 隐藏关卡（混合挑战，无鸡） -->
                 <div class="level-card disabled" id="hiddenLevelCard" onclick="startGame('hidden')">
                     <div class="level-avatar" id="hiddenAvatar">🔒</div>
                     <div class="level-info">
@@ -640,6 +631,15 @@
                         <div class="level-desc" id="hiddenLevelDesc">同时通关老马和老胖解锁</div>
                     </div>
                     <div class="level-arrow" id="hiddenArrow">🔒</div>
+                </div>
+                <!-- 鸡关卡（独立，需解锁） -->
+                <div class="level-card disabled" id="jiLevelCard" onclick="startGame('ji')">
+                    <div class="level-avatar" id="jiAvatar">🔒</div>
+                    <div class="level-info">
+                        <div class="level-name">第四关 · 鸡</div>
+                        <div class="level-desc" id="jiLevelDesc">同时通关老马和老胖解锁</div>
+                    </div>
+                    <div class="level-arrow" id="jiArrow">🔒</div>
                 </div>
             </div>
         </div>
@@ -771,7 +771,7 @@
             document.getElementById('loading').classList.remove('active');
             document.getElementById('home').classList.add('active');
             currentScreen = 'home';
-            updateHiddenLevelStatus();
+            updateLevelStatus();
         }
         bootApp();
 
@@ -855,33 +855,56 @@
             currentScreen = name;
             if (name === 'game') { resizeCanvas(); } else { stopGame(); }
             if (name === 'levelSelect') {
-                updateHiddenLevelStatus();
+                updateLevelStatus();
             }
         }
 
         // ============================================================
-        // 4. 隐藏关卡解锁状态（仍为 ma & pang 7级）
+        // 4. 关卡解锁状态（老马老胖通关7级后解锁隐藏和鸡）
         // ============================================================
-        function updateHiddenLevelStatus() {
-            const card = document.getElementById('hiddenLevelCard');
-            const desc = document.getElementById('hiddenLevelDesc');
-            const arrow = document.getElementById('hiddenArrow');
-            const avatar = document.getElementById('hiddenAvatar');
+        function updateLevelStatus() {
             const unlocked = isUnlocked('ma', 7) && isUnlocked('pang', 7);
+
+            // 隐藏关卡
+            const hiddenCard = document.getElementById('hiddenLevelCard');
+            const hiddenDesc = document.getElementById('hiddenLevelDesc');
+            const hiddenArrow = document.getElementById('hiddenArrow');
+            const hiddenAvatar = document.getElementById('hiddenAvatar');
             if (unlocked) {
-                card.classList.remove('disabled');
-                desc.textContent = '三角色混合，挑战极限！';
-                arrow.textContent = '→';
-                avatar.textContent = '⚡';
-                avatar.style.background = 'transparent';
-                avatar.style.fontSize = '32px';
+                hiddenCard.classList.remove('disabled');
+                hiddenDesc.textContent = '双角色混合，挑战极限！';
+                hiddenArrow.textContent = '→';
+                hiddenAvatar.textContent = '⚡';
+                hiddenAvatar.style.background = 'transparent';
+                hiddenAvatar.style.fontSize = '32px';
             } else {
-                card.classList.add('disabled');
-                desc.textContent = '同时通关老马和老胖解锁';
-                arrow.textContent = '🔒';
-                avatar.textContent = '🔒';
-                avatar.style.background = 'transparent';
-                avatar.style.fontSize = '28px';
+                hiddenCard.classList.add('disabled');
+                hiddenDesc.textContent = '同时通关老马和老胖解锁';
+                hiddenArrow.textContent = '🔒';
+                hiddenAvatar.textContent = '🔒';
+                hiddenAvatar.style.background = 'transparent';
+                hiddenAvatar.style.fontSize = '28px';
+            }
+
+            // 鸡关卡
+            const jiCard = document.getElementById('jiLevelCard');
+            const jiDesc = document.getElementById('jiLevelDesc');
+            const jiArrow = document.getElementById('jiArrow');
+            const jiAvatar = document.getElementById('jiAvatar');
+            if (unlocked) {
+                jiCard.classList.remove('disabled');
+                jiDesc.textContent = '独立鸡关卡，合成最帅鸡照';
+                jiArrow.textContent = '→';
+                jiAvatar.textContent = '🐔';
+                jiAvatar.style.background = 'transparent';
+                jiAvatar.style.fontSize = '32px';
+            } else {
+                jiCard.classList.add('disabled');
+                jiDesc.textContent = '同时通关老马和老胖解锁';
+                jiArrow.textContent = '🔒';
+                jiAvatar.textContent = '🔒';
+                jiAvatar.style.background = 'transparent';
+                jiAvatar.style.fontSize = '28px';
             }
         }
 
@@ -942,19 +965,13 @@
             showScreen('collection');
         }
 
-        function getDownloadPath(charLevel, level) {
-            return 'dl_' + charLevel + level + '.jpg';
-        }
-
         function downloadPhoto(cl, level) {
             if (!isUnlocked(cl, level)) return;
+            // 文件名格式 dl_ma1.jpg, dl_pang1.jpg, dl_ji1.jpg
+            const filename = 'dl_' + cl + level + '.jpg';
             const a = document.createElement('a');
-            a.href = getDownloadPath(cl, level);
-            let name = '';
-            if (cl === 'ma') name = '老马';
-            else if (cl === 'pang') name = '老胖';
-            else if (cl === 'ji') name = '鸡';
-            a.download = name + '帅照' + level + '.jpg';
+            a.href = getPhotoPath(cl, level); // 直接使用图片路径
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -994,8 +1011,9 @@
         }
 
         function initGame(cl) {
-            charPrefix = (cl === 'hidden') ? '' : cl;
+            charPrefix = (cl === 'hidden' || cl === 'ji') ? '' : cl;
             isHiddenMode = (cl === 'hidden');
+            const isJiMode = (cl === 'ji');
             score = 0;
             balls = [];
             isDropping = false;
@@ -1025,7 +1043,17 @@
             walls = [leftWall, rightWall, ground, topWall];
             World.add(world, walls);
 
-            spawnNextBall();
+            // 根据模式设置初始球
+            if (isHiddenMode) {
+                // 混合模式：仅 ma 和 pang
+                spawnNextBallHidden();
+            } else if (isJiMode) {
+                // 鸡模式：仅 ji
+                spawnNextBallJi();
+            } else {
+                // 普通模式（ma 或 pang）
+                spawnNextBallNormal();
+            }
             updateNextBallPreview();
 
             Events.on(engine, 'collisionStart', handleCollision);
@@ -1040,22 +1068,30 @@
             return Math.floor(Math.random() * 3) + 1;
         }
 
-        function spawnNextBall() {
-            if (isHiddenMode) {
-                // 隐藏模式包含三种角色
-                const chars = ['ma', 'pang', 'ji'];
-                const character = chars[Math.floor(Math.random() * 3)];
-                const level = Math.floor(Math.random() * 3) + 1;
-                nextBall = { character, level };
-            } else {
-                const level = getRandomStartLevel();
-                nextBall = { character: charPrefix, level };
-            }
+        function spawnNextBallNormal() {
+            const level = getRandomStartLevel();
+            nextBall = { character: charPrefix, level };
             dropX = gameWidth / 2;
             currentBall = { ...nextBall, x: dropX, y: dropLineY };
-            if (!isHiddenMode) {
-                unlockPhoto(charPrefix, nextBall.level);
-            }
+            unlockPhoto(charPrefix, nextBall.level);
+        }
+
+        function spawnNextBallHidden() {
+            const chars = ['ma', 'pang'];
+            const character = chars[Math.floor(Math.random() * 2)];
+            const level = Math.floor(Math.random() * 3) + 1;
+            nextBall = { character, level };
+            dropX = gameWidth / 2;
+            currentBall = { ...nextBall, x: dropX, y: dropLineY };
+            // 不自动解锁，由碰撞解锁
+        }
+
+        function spawnNextBallJi() {
+            const level = getRandomStartLevel();
+            nextBall = { character: 'ji', level };
+            dropX = gameWidth / 2;
+            currentBall = { ...nextBall, x: dropX, y: dropLineY };
+            unlockPhoto('ji', nextBall.level);
         }
 
         function updateNextBallPreview() {
@@ -1092,7 +1128,14 @@
             setTimeout(() => {
                 if (gameOver) return;
                 isDropping = false;
-                spawnNextBall();
+                // 根据模式生成下一个
+                if (charPrefix === '' && currentCharacter === 'hidden') {
+                    spawnNextBallHidden();
+                } else if (charPrefix === '' && currentCharacter === 'ji') {
+                    spawnNextBallJi();
+                } else {
+                    spawnNextBallNormal();
+                }
                 updateNextBallPreview();
                 checkGameOver();
             }, 500);
@@ -1290,9 +1333,10 @@
         // 8. 游戏控制函数
         // ============================================================
         function startGame(cl) {
-            if (cl === 'hidden') {
+            // 检查解锁（隐藏关卡和鸡关卡）
+            if (cl === 'hidden' || cl === 'ji') {
                 if (!(isUnlocked('ma', 7) && isUnlocked('pang', 7))) {
-                    return;
+                    return; // 未解锁，不进入
                 }
             }
             currentCharacter = cl;
