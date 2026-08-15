@@ -627,7 +627,7 @@
                 <div class="level-card disabled" id="hiddenLevelCard" onclick="startGame('hidden')">
                     <div class="level-avatar" id="hiddenAvatar">🔒</div>
                     <div class="level-info">
-                        <div class="level-name">隐藏关卡 · 混合挑战</div>
+                        <div class="level-name">第三关 · 混合挑战</div>
                         <div class="level-desc" id="hiddenLevelDesc">同时通关老马和老胖解锁</div>
                     </div>
                     <div class="level-arrow" id="hiddenArrow">🔒</div>
@@ -860,12 +860,12 @@
         }
 
         // ============================================================
-        // 4. 关卡解锁状态（老马老胖通关7级后解锁隐藏和鸡）
+        // 4. 关卡解锁状态（老马老胖通关7级后解锁混合和鸡）
         // ============================================================
         function updateLevelStatus() {
             const unlocked = isUnlocked('ma', 7) && isUnlocked('pang', 7);
 
-            // 隐藏关卡
+            // 隐藏关卡（混合挑战）
             const hiddenCard = document.getElementById('hiddenLevelCard');
             const hiddenDesc = document.getElementById('hiddenLevelDesc');
             const hiddenArrow = document.getElementById('hiddenArrow');
@@ -970,7 +970,7 @@
             // 文件名格式 dl_ma1.jpg, dl_pang1.jpg, dl_ji1.jpg
             const filename = 'dl_' + cl + level + '.jpg';
             const a = document.createElement('a');
-            a.href = getPhotoPath(cl, level); // 直接使用图片路径
+            a.href = getPhotoPath(cl, level);
             a.download = filename;
             document.body.appendChild(a);
             a.click();
@@ -1012,7 +1012,7 @@
 
         function initGame(cl) {
             charPrefix = (cl === 'hidden' || cl === 'ji') ? '' : cl;
-            isHiddenMode = (cl === 'hidden');
+            const isHiddenMode = (cl === 'hidden');
             const isJiMode = (cl === 'ji');
             score = 0;
             balls = [];
@@ -1043,15 +1043,12 @@
             walls = [leftWall, rightWall, ground, topWall];
             World.add(world, walls);
 
-            // 根据模式设置初始球
+            // 初始化第一个球
             if (isHiddenMode) {
-                // 混合模式：仅 ma 和 pang
                 spawnNextBallHidden();
             } else if (isJiMode) {
-                // 鸡模式：仅 ji
                 spawnNextBallJi();
             } else {
-                // 普通模式（ma 或 pang）
                 spawnNextBallNormal();
             }
             updateNextBallPreview();
@@ -1333,7 +1330,7 @@
         // 8. 游戏控制函数
         // ============================================================
         function startGame(cl) {
-            // 检查解锁（隐藏关卡和鸡关卡）
+            // 检查解锁（混合关卡和鸡关卡）
             if (cl === 'hidden' || cl === 'ji') {
                 if (!(isUnlocked('ma', 7) && isUnlocked('pang', 7))) {
                     return; // 未解锁，不进入
