@@ -161,22 +161,21 @@
   }
   .collection-item {
     background: #141414; border: 1px solid #222;
-    border-radius: 14px; padding: 16px;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-    aspect-ratio: 1 / 1.1;
+    border-radius: 14px; padding: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
   }
   .collection-photo {
     width: 100%; aspect-ratio: 1 / 1; border-radius: 50%;
     overflow: hidden; background: #1a1a1a;
     border: 2px solid #2a2a2a;
-    flex-shrink: 0; min-height: 0;
+    flex-shrink: 0;
   }
   .collection-photo img { width: 100%; height: 100%; object-fit: cover; }
   .collection-photo.locked {
     display: flex; align-items: center; justify-content: center;
     font-size: 32px; color: #333; font-weight: 900;
   }
-  .collection-info { text-align: center; }
+  .collection-info { text-align: center; flex-shrink: 0; width: 100%; }
   .collection-level { font-size: 12px; color: #666; margin-bottom: 2px; }
   .collection-name { font-size: 14px; font-weight: 600; }
   .download-btn {
@@ -184,6 +183,7 @@
     background: #1f1f1f; border: 1px solid #333;
     color: #ccc; border-radius: 8px; cursor: pointer;
     transition: all 0.15s ease;
+    flex-shrink: 0; width: 100%;
   }
   .download-btn:hover { background: #2a2a2a; color: #fff; }
   .download-btn:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -467,7 +467,8 @@ function initGame(cl) {
   const leftWall = Bodies.rectangle(-wallThickness/2, gameHeight/2, wallThickness, gameHeight * 2, { isStatic: true });
   const rightWall = Bodies.rectangle(gameWidth + wallThickness/2, gameHeight/2, wallThickness, gameHeight * 2, { isStatic: true });
   const ground = Bodies.rectangle(gameWidth/2, groundY + wallThickness/2, gameWidth * 2, wallThickness, { isStatic: true });
-  walls = [leftWall, rightWall, ground];
+  const topWall = Bodies.rectangle(gameWidth/2, -wallThickness/2, gameWidth * 2, wallThickness, { isStatic: true });
+  walls = [leftWall, rightWall, ground, topWall];
   World.add(world, walls);
   nextBallLevel = getRandomStartLevel();
   spawnNextBall();
