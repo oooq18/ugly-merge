@@ -1,710 +1,1238 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="creative-medium" content="mini-game">
-<title>帅照合成大作战</title>
-<script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"></script>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    width: 100%; height: 100%; overflow: hidden;
-    background: #0a0a0a; color: #f5f5f5;
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    user-select: none; -webkit-user-select: none;
-    touch-action: none;
-  }
-  #app { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
-  .screen {
-    position: absolute; inset: 0;
-    display: none; flex-direction: column; align-items: center;
-    padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
-  }
-  .screen.active { display: flex; }
-  #home { justify-content: center; gap: 48px; }
-  .game-title {
-    font-size: clamp(32px, 9vw, 56px);
-    font-weight: 800; letter-spacing: 2px;
-    background: linear-gradient(135deg, #fff 0%, #999 100%);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-align: center; line-height: 1.2;
-  }
-  .game-subtitle {
-    font-size: 14px; color: #666; letter-spacing: 4px;
-    text-transform: uppercase; margin-top: -24px;
-  }
-  .home-buttons {
-    display: flex; flex-direction: column; gap: 16px;
-    width: 100%; max-width: 320px;
-  }
-  .btn {
-    width: 100%; padding: 16px 24px;
-    background: #1a1a1a; border: 1px solid #2a2a2a;
-    color: #f5f5f5; font-size: 16px; font-weight: 600;
-    border-radius: 12px; cursor: pointer;
-    transition: all 0.2s ease; letter-spacing: 1px;
-  }
-  .btn:hover { background: #252525; border-color: #3a3a3a; }
-  .btn:active { transform: scale(0.97); }
-  .btn-primary { background: #fff; color: #0a0a0a; border-color: #fff; }
-  .btn-primary:hover { background: #e5e5e5; border-color: #e5e5e5; }
-  .btn-ghost { background: transparent; border: 1px solid #333; }
-  #levelSelect { justify-content: flex-start; padding-top: 60px; gap: 32px; }
-  .section-title { font-size: 24px; font-weight: 700; letter-spacing: 1px; }
-  .level-list {
-    display: flex; flex-direction: column; gap: 16px;
-    width: 100%; max-width: 400px;
-  }
-  .level-card {
-    background: #141414; border: 1px solid #222;
-    border-radius: 16px; padding: 24px;
-    display: flex; align-items: center; gap: 20px;
-    cursor: pointer; transition: all 0.2s ease;
-  }
-  .level-card:hover { background: #1a1a1a; border-color: #333; }
-  .level-card:active { transform: scale(0.98); }
-  .level-avatar {
-    width: 64px; height: 64px; border-radius: 50%;
-    background: #222; flex-shrink: 0; overflow: hidden;
-  }
-  .level-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .level-info { flex: 1; }
-  .level-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-  .level-desc { font-size: 13px; color: #888; }
-  .level-arrow { color: #555; font-size: 20px; }
-  #game { padding: 0; }
-  .game-topbar {
-    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: calc(env(safe-area-inset-top) + 12px) 16px 12px 16px;
-    background: linear-gradient(to bottom, rgba(10,10,10,0.95) 0%, rgba(10,10,10,0) 100%);
-    pointer-events: none;
-  }
-  .game-topbar > * { pointer-events: auto; }
-  .icon-btn {
-    width: 40px; height: 40px; border-radius: 50%;
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; cursor: pointer; font-size: 16px;
-    backdrop-filter: blur(10px); transition: all 0.15s ease;
-  }
-  .icon-btn:hover { background: rgba(255,255,255,0.15); }
-  .icon-btn:active { transform: scale(0.9); }
-  .score-box { text-align: right; }
-  .score-label { font-size: 11px; color: #888; letter-spacing: 1px; }
-  .score-value { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .next-box {
-    position: absolute; top: calc(env(safe-area-inset-top) + 70px);
-    right: 16px; z-index: 10;
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    pointer-events: none;
-  }
-  .next-label { font-size: 10px; color: #666; letter-spacing: 1px; }
-  .next-ball {
-    width: 44px; height: 44px; border-radius: 50%;
-    overflow: hidden; border: 2px solid rgba(255,255,255,0.15);
-  }
-  .next-ball img { width: 100%; height: 100%; object-fit: cover; }
-  #gameCanvas { display: block; width: 100%; height: 100%; background: #0a0a0a; }
-  .game-overlay {
-    position: absolute; inset: 0; z-index: 20;
-    background: rgba(0,0,0,0.85); backdrop-filter: blur(20px);
-    display: none; flex-direction: column; align-items: center; justify-content: center;
-    padding: 32px; gap: 24px;
-  }
-  .game-overlay.show { display: flex; }
-  .overlay-title { font-size: 28px; font-weight: 800; letter-spacing: 2px; }
-  .overlay-score {
-    font-size: 48px; font-weight: 900;
-    background: linear-gradient(135deg, #fff 0%, #888 100%);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .final-photo {
-    width: 180px; height: 180px; border-radius: 50%;
-    overflow: hidden; border: 4px solid #fff;
-    box-shadow: 0 20px 60px rgba(255,255,255,0.2);
-  }
-  .final-photo img { width: 100%; height: 100%; object-fit: cover; }
-  .overlay-buttons {
-    display: flex; flex-direction: column; gap: 12px;
-    width: 100%; max-width: 280px;
-  }
-  #collection { padding-top: 0; }
-  .collection-header {
-    width: 100%; max-width: 500px;
-    padding: calc(env(safe-area-inset-top) + 16px) 0 16px 0;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .collection-title {
-    font-size: 20px; font-weight: 700; flex: 1; text-align: center;
-    margin-right: 40px;
-  }
-  .tabs {
-    width: 100%; max-width: 500px;
-    display: flex; gap: 0; margin-bottom: 20px;
-    background: #141414; border-radius: 10px; padding: 4px;
-  }
-  .tab {
-    flex: 1; padding: 10px; text-align: center;
-    font-size: 14px; font-weight: 600; color: #777;
-    border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
-  }
-  .tab.active { background: #fff; color: #0a0a0a; }
-  .collection-grid {
-    width: 100%; max-width: 500px; flex: 1;
-    display: grid; grid-template-columns: repeat(2, 1fr);
-    gap: 16px; padding-bottom: 20px;
-    overflow-y: auto; -webkit-overflow-scrolling: touch;
-  }
-  .collection-item {
-    background: #141414; border: 1px solid #222;
-    border-radius: 14px; padding: 12px;
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-  }
-  .collection-photo {
-    width: 100%; aspect-ratio: 1 / 1; border-radius: 50%;
-    overflow: hidden; background: #1a1a1a;
-    border: 2px solid #2a2a2a;
-    flex-shrink: 0;
-  }
-  .collection-photo img { width: 100%; height: 100%; object-fit: cover; }
-  .collection-photo.locked {
-    display: flex; align-items: center; justify-content: center;
-    font-size: 32px; color: #333; font-weight: 900;
-  }
-  .collection-info { text-align: center; flex-shrink: 0; width: 100%; }
-  .collection-level { font-size: 12px; color: #666; margin-bottom: 2px; }
-  .collection-name { font-size: 14px; font-weight: 600; }
-  .download-btn {
-    padding: 6px 14px; font-size: 12px;
-    background: #1f1f1f; border: 1px solid #333;
-    color: #ccc; border-radius: 8px; cursor: pointer;
-    transition: all 0.15s ease;
-    flex-shrink: 0; width: 100%;
-  }
-  .download-btn:hover { background: #2a2a2a; color: #fff; }
-  .download-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  .collection-grid::-webkit-scrollbar { width: 4px; }
-  .collection-grid::-webkit-scrollbar-track { background: transparent; }
-  .collection-grid::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="creative-medium" content="mini-game">
+    <title>帅照合成大作战</title>
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js">
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0a0a0a;
+            color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        #app {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom) 20px;
+        }
+        .screen.active {
+            display: flex;
+        }
+
+        /* ===== 加载界面 ===== */
+        #loading {
+            justify-content: center;
+            gap: 32px;
+            background: #0a0a0a;
+            z-index: 100;
+        }
+        .loading-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+            width: 100%;
+            max-width: 360px;
+        }
+        .loading-title {
+            font-size: clamp(32px, 9vw, 56px);
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #fff 0%, #999 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .loading-sub {
+            font-size: 14px;
+            color: #666;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-top: -12px;
+        }
+        .loading-bar-wrap {
+            width: 100%;
+            height: 6px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+        .loading-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #666, #fff);
+            transition: width 0.25s ease-out;
+        }
+        .loading-percent {
+            font-size: 18px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 1px;
+            color: #aaa;
+        }
+        .loading-hint {
+            font-size: 12px;
+            color: #555;
+            text-align: center;
+            line-height: 1.6;
+            letter-spacing: 0.5px;
+            padding: 0 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 20px;
+            margin-top: 4px;
+        }
+        .loading-hint span {
+            color: #777;
+        }
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 2px solid rgba(255, 255, 255, 0.06);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-top: -4px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ===== 主界面 ===== */
+        #home {
+            justify-content: center;
+            gap: 48px;
+        }
+        .game-title {
+            font-size: clamp(32px, 9vw, 56px);
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #fff 0%, #999 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .game-subtitle {
+            font-size: 14px;
+            color: #666;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-top: -24px;
+        }
+        .home-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            max-width: 320px;
+        }
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            color: #f5f5f5;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 1px;
+        }
+        .btn:hover {
+            background: #252525;
+            border-color: #3a3a3a;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn-primary {
+            background: #fff;
+            color: #0a0a0a;
+            border-color: #fff;
+        }
+        .btn-primary:hover {
+            background: #e5e5e5;
+            border-color: #e5e5e5;
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid #333;
+        }
+
+        /* ===== 关卡选择 ===== */
+        #levelSelect {
+            justify-content: flex-start;
+            padding-top: 60px;
+            gap: 32px;
+        }
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .level-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .level-card {
+            background: #141414;
+            border: 1px solid #222;
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .level-card:hover {
+            background: #1a1a1a;
+            border-color: #333;
+        }
+        .level-card:active {
+            transform: scale(0.98);
+        }
+        .level-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #222;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .level-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .level-info {
+            flex: 1;
+        }
+        .level-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .level-desc {
+            font-size: 13px;
+            color: #888;
+        }
+        .level-arrow {
+            color: #555;
+            font-size: 20px;
+        }
+
+        /* ===== 游戏界面 ===== */
+        #game {
+            padding: 0;
+        }
+        .game-topbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: calc(env(safe-area-inset-top) + 12px) 16px 12px 16px;
+            background: linear-gradient(to bottom, rgba(10, 10, 10, 0.95) 0%, rgba(10, 10, 10, 0) 100%);
+            pointer-events: none;
+        }
+        .game-topbar>* {
+            pointer-events: auto;
+        }
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+            backdrop-filter: blur(10px);
+            transition: all 0.15s ease;
+        }
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .icon-btn:active {
+            transform: scale(0.9);
+        }
+        .score-box {
+            text-align: right;
+        }
+        .score-label {
+            font-size: 11px;
+            color: #888;
+            letter-spacing: 1px;
+        }
+        .score-value {
+            font-size: 24px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+        .next-box {
+            position: absolute;
+            top: calc(env(safe-area-inset-top) + 70px);
+            right: 16px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            pointer-events: none;
+        }
+        .next-label {
+            font-size: 10px;
+            color: #666;
+            letter-spacing: 1px;
+        }
+        .next-ball {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+        .next-ball img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+        }
+        .game-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(20px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            gap: 24px;
+        }
+        .game-overlay.show {
+            display: flex;
+        }
+        .overlay-title {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+        .overlay-score {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 0%, #888 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .final-photo {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 4px solid #fff;
+            box-shadow: 0 20px 60px rgba(255, 255, 255, 0.2);
+        }
+        .final-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .overlay-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            max-width: 280px;
+        }
+
+        /* ===== 图鉴 ===== */
+        #collection {
+            padding-top: 0;
+        }
+        .collection-header {
+            width: 100%;
+            max-width: 500px;
+            padding: calc(env(safe-area-inset-top) + 16px) 0 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .collection-title {
+            font-size: 20px;
+            font-weight: 700;
+            flex: 1;
+            text-align: center;
+            margin-right: 40px;
+        }
+        .tabs {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            background: #141414;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #777;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .tab.active {
+            background: #fff;
+            color: #0a0a0a;
+        }
+        .collection-grid {
+            width: 100%;
+            max-width: 500px;
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            padding-bottom: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .collection-item {
+            background: #141414;
+            border: 1px solid #222;
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .collection-photo {
+            width: 100%;
+            aspect-ratio: 1/1;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #1a1a1a;
+            border: 2px solid #2a2a2a;
+            flex-shrink: 0;
+        }
+        .collection-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .collection-photo.locked {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: #333;
+            font-weight: 900;
+        }
+        .collection-info {
+            text-align: center;
+            flex-shrink: 0;
+            width: 100%;
+        }
+        .collection-level {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+        .collection-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .download-btn {
+            padding: 6px 14px;
+            font-size: 12px;
+            background: #1f1f1f;
+            border: 1px solid #333;
+            color: #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            flex-shrink: 0;
+            width: 100%;
+        }
+        .download-btn:hover {
+            background: #2a2a2a;
+            color: #fff;
+        }
+        .download-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .collection-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+        .collection-grid::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .collection-grid::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 2px;
+        }
+
+        /* ===== 响应式微调 ===== */
+        @media (max-width: 420px) {
+            .loading-title {
+                font-size: 28px;
+            }
+            .level-card {
+                padding: 16px;
+                gap: 14px;
+            }
+            .level-avatar {
+                width: 48px;
+                height: 48px;
+            }
+            .level-name {
+                font-size: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
-<div id="app">
-  <div id="home" class="screen active">
-    <div class="game-title">帅照合成<br>大作战</div>
-    <div class="game-subtitle">Merge to Glory</div>
-    <div class="home-buttons">
-      <button class="btn btn-primary" onclick="showScreen('levelSelect')">开始游戏</button>
-      <button class="btn btn-ghost" onclick="showCollection()">图鉴</button>
-    </div>
-  </div>
-  <div id="levelSelect" class="screen">
-    <div style="width:100%;max-width:400px;padding-top:60px;">
-      <button class="icon-btn" onclick="showScreen('home')" style="margin-bottom:20px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <div class="section-title">选择关卡</div>
-    </div>
-    <div class="level-list">
-      <div class="level-card" onclick="startGame('ma')">
-        <div class="level-avatar"><img src="ma4.jpg" alt="老马"></div>
-        <div class="level-info">
-          <div class="level-name">第一关 · 老马</div>
-          <div class="level-desc">经典帅照，从小到大合成终极形态</div>
+    <div id="app">
+
+        <!-- ===== 加载界面 ===== -->
+        <div id="loading" class="screen active">
+            <div class="loading-content">
+                <div class="loading-title">帅照合成<br>大作战</div>
+                <div class="loading-sub">Merge to Glory</div>
+                <div class="loading-spinner"></div>
+                <div class="loading-bar-wrap">
+                    <div class="loading-bar" id="loadingBar"></div>
+                </div>
+                <div class="loading-percent" id="loadingPercent">0%</div>
+                <div class="loading-hint">
+                    <span>⏳</span> 本网站使用 GitHub Pages 功能<br>
+                    加载速度取决于您访问 GitHub 的速度
+                </div>
+            </div>
         </div>
-        <div class="level-arrow">→</div>
-      </div>
-      <div class="level-card" onclick="startGame('pang')">
-        <div class="level-avatar"><img src="pang4.jpg" alt="老胖"></div>
-        <div class="level-info">
-          <div class="level-name">第二关 · 老胖</div>
-          <div class="level-desc">胖式帅气，合成最帅胖照</div>
+
+        <!-- ===== 主界面 ===== -->
+        <div id="home" class="screen">
+            <div class="game-title">帅照合成<br>大作战</div>
+            <div class="game-subtitle">Merge to Glory</div>
+            <div class="home-buttons">
+                <button class="btn btn-primary" onclick="showScreen('levelSelect')">开始游戏</button>
+                <button class="btn btn-ghost" onclick="showCollection()">图鉴</button>
+            </div>
         </div>
-        <div class="level-arrow">→</div>
-      </div>
+
+        <!-- ===== 关卡选择 ===== -->
+        <div id="levelSelect" class="screen">
+            <div style="width:100%;max-width:400px;padding-top:60px;">
+                <button class="icon-btn" onclick="showScreen('home')" style="margin-bottom:20px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <div class="section-title">选择关卡</div>
+            </div>
+            <div class="level-list">
+                <div class="level-card" onclick="startGame('ma')">
+                    <div class="level-avatar"><img src="ma4.jpg" alt="老马"></div>
+                    <div class="level-info">
+                        <div class="level-name">第一关 · 老马</div>
+                        <div class="level-desc">经典帅照，从小到大合成终极形态</div>
+                    </div>
+                    <div class="level-arrow">→</div>
+                </div>
+                <div class="level-card" onclick="startGame('pang')">
+                    <div class="level-avatar"><img src="pang4.jpg" alt="老胖"></div>
+                    <div class="level-info">
+                        <div class="level-name">第二关 · 老胖</div>
+                        <div class="level-desc">胖式帅气，合成最帅胖照</div>
+                    </div>
+                    <div class="level-arrow">→</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 游戏界面 ===== -->
+        <div id="game" class="screen">
+            <canvas id="gameCanvas"></canvas>
+            <div class="game-topbar">
+                <button class="icon-btn" onclick="backToLevelSelect()" title="返回">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <div class="score-box">
+                    <div class="score-label">得分</div>
+                    <div class="score-value" id="scoreValue">0</div>
+                </div>
+                <button class="icon-btn" id="soundBtn" onclick="toggleSound()" title="音效">
+                    <svg id="soundOnIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    <svg id="soundOffIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                </button>
+            </div>
+            <div class="next-box">
+                <div class="next-label">下一个</div>
+                <div class="next-ball" id="nextBall"><img src="" id="nextBallImg" alt=""></div>
+            </div>
+            <div class="game-overlay" id="winOverlay">
+                <div class="overlay-title">合成成功！</div>
+                <div class="final-photo"><img src="" id="winPhoto" alt="终极帅照"></div>
+                <div class="overlay-score" id="winScore">0</div>
+                <div class="overlay-buttons">
+                    <button class="btn btn-primary" onclick="savePoster()">保存海报</button>
+                    <button class="btn" onclick="restartGame()">再玩一次</button>
+                    <button class="btn btn-ghost" onclick="backToLevelSelect()">返回选关</button>
+                </div>
+            </div>
+            <div class="game-overlay" id="loseOverlay">
+                <div class="overlay-title">游戏结束</div>
+                <div class="overlay-score" id="loseScore">0</div>
+                <div style="color:#888;font-size:14px;">再接再厉，帅无止境</div>
+                <div class="overlay-buttons">
+                    <button class="btn btn-primary" onclick="restartGame()">再来一次</button>
+                    <button class="btn btn-ghost" onclick="backToLevelSelect()">返回选关</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 图鉴 ===== -->
+        <div id="collection" class="screen">
+            <div class="collection-header">
+                <button class="icon-btn" onclick="showScreen('home')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <div class="collection-title">图鉴</div>
+            </div>
+            <div class="tabs">
+                <div class="tab active" data-tab="ma" onclick="switchTab('ma')">老马</div>
+                <div class="tab" data-tab="pang" onclick="switchTab('pang')">老胖</div>
+            </div>
+            <div class="collection-grid" id="collectionGrid"></div>
+        </div>
     </div>
-  </div>
-  <div id="game" class="screen">
-    <canvas id="gameCanvas"></canvas>
-    <div class="game-topbar">
-      <button class="icon-btn" onclick="backToLevelSelect()" title="返回">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <div class="score-box">
-        <div class="score-label">得分</div>
-        <div class="score-value" id="scoreValue">0</div>
-      </div>
-      <button class="icon-btn" id="soundBtn" onclick="toggleSound()" title="音效">
-        <svg id="soundOnIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-        <svg id="soundOffIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
-      </button>
-    </div>
-    <div class="next-box">
-      <div class="next-label">下一个</div>
-      <div class="next-ball" id="nextBall"><img src="" id="nextBallImg" alt=""></div>
-    </div>
-    <div class="game-overlay" id="winOverlay">
-      <div class="overlay-title">合成成功！</div>
-      <div class="final-photo"><img src="" id="winPhoto" alt="终极帅照"></div>
-      <div class="overlay-score" id="winScore">0</div>
-      <div class="overlay-buttons">
-        <button class="btn btn-primary" onclick="savePoster()">保存海报</button>
-        <button class="btn" onclick="restartGame()">再玩一次</button>
-        <button class="btn btn-ghost" onclick="backToLevelSelect()">返回选关</button>
-      </div>
-    </div>
-    <div class="game-overlay" id="loseOverlay">
-      <div class="overlay-title">游戏结束</div>
-      <div class="overlay-score" id="loseScore">0</div>
-      <div style="color:#888;font-size:14px;">再接再厉，帅无止境</div>
-      <div class="overlay-buttons">
-        <button class="btn btn-primary" onclick="restartGame()">再来一次</button>
-        <button class="btn btn-ghost" onclick="backToLevelSelect()">返回选关</button>
-      </div>
-    </div>
-  </div>
-  <div id="collection" class="screen">
-    <div class="collection-header">
-      <button class="icon-btn" onclick="showScreen('home')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <div class="collection-title">图鉴</div>
-    </div>
-    <div class="tabs">
-      <div class="tab active" data-tab="ma" onclick="switchTab('ma')">老马</div>
-      <div class="tab" data-tab="pang" onclick="switchTab('pang')">老胖</div>
-    </div>
-    <div class="collection-grid" id="collectionGrid"></div>
-  </div>
-</div>
-<script>
-let currentScreen = 'home';
-let currentCharacter = 'ma';
-let soundEnabled = true;
-let audioCtx = null;
-const BALL_RADII = [20, 28, 38, 52, 70, 94, 124];
-const SCORE_TABLE = [1, 3, 6, 10, 15, 21, 28];
-function getPhotoPath(charLevel, level) {
-  return charLevel + level + '.jpg';
-}
-const photoCache = {};
-function preloadPhotos() {
-  ['ma', 'pang'].forEach(c => {
-    for (let i = 1; i <= 7; i++) {
-      const img = new Image();
-      img.src = getPhotoPath(c, i);
-      photoCache[c + i] = img;
-    }
-  });
-}
-preloadPhotos();
-function initAudio() {
-  if (!audioCtx) {
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { audioCtx = null; }
-  }
-}
-function playPop(freq) {
-  freq = freq || 440;
-  if (!soundEnabled || !audioCtx) return;
-  try {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-  } catch(e) {}
-}
-function playMerge(level) {
-  if (!soundEnabled || !audioCtx) return;
-  try {
-    const base = 300 + level * 60;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(base, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(base * 2, audioCtx.currentTime + 0.2);
-    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.25);
-  } catch(e) {}
-}
-function playWin() {
-  if (!soundEnabled || !audioCtx) return;
-  try {
-    const notes = [523, 659, 784, 1047];
-    notes.forEach((f, i) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = f;
-      gain.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.1);
-      gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + i * 0.1 + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.1 + 0.3);
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(audioCtx.currentTime + i * 0.1);
-      osc.stop(audioCtx.currentTime + i * 0.1 + 0.3);
-    });
-  } catch(e) {}
-}
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(name).classList.add('active');
-  currentScreen = name;
-  if (name === 'game') { resizeCanvas(); }
-  else { stopGame(); }
-}
-function isUnlocked(charLevel, level) {
-  try { return localStorage.getItem('unlocked_' + charLevel + '_' + level) === '1'; }
-  catch(e) { return false; }
-}
-function unlockPhoto(charLevel, level) {
-  try { localStorage.setItem('unlocked_' + charLevel + '_' + level, '1'); } catch(e) {}
-}
-let currentTab = 'ma';
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.tab === tab);
-  });
-  renderCollection();
-}
-function renderCollection() {
-  const grid = document.getElementById('collectionGrid');
-  const cl = currentTab;
-  const name = cl === 'ma' ? '老马' : '老胖';
-  let html = '';
-  for (let i = 1; i <= 7; i++) {
-    const unlocked = isUnlocked(cl, i);
-    const src = getPhotoPath(cl, i);
-    html += '<div class="collection-item">' +
-      '<div class="collection-photo ' + (unlocked ? '' : 'locked') + '">' +
-      (unlocked ? '<img src="' + src + '" alt="' + name + '等级' + i + '">' : '?') +
-      '</div>' +
-      '<div class="collection-info">' +
-      '<div class="collection-level">等级 ' + i + '</div>' +
-      '<div class="collection-name">' + (unlocked ? '帅照 ' + i : '未解锁') + '</div>' +
-      '</div>' +
-      '<button class="download-btn" ' + (unlocked ? '' : 'disabled') + ' onclick="downloadPhoto(\'' + cl + '\', ' + i + ')">' +
-      (unlocked ? '下载' : '未解锁') + '</button>' +
-      '</div>';
-  }
-  grid.innerHTML = html;
-}
-function showCollection() {
-  renderCollection();
-  showScreen('collection');
-}
-function getDownloadPath(charLevel, level) {
-  return 'dl_' + charLevel + level + '.jpg';
-}
-function downloadPhoto(cl, level) {
-  if (!isUnlocked(cl, level)) return;
-  const a = document.createElement('a');
-  a.href = getDownloadPath(cl, level);
-  a.download = (cl === 'ma' ? '老马' : '老胖') + '帅照' + level + '.jpg';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-const { Engine, World, Bodies, Body, Events, Composite, Runner } = Matter;
-let engine, runner, world;
-let canvas, ctx;
-let gameWidth, gameHeight;
-let walls = [];
-let balls = [];
-let currentBall = null;
-let nextBallLevel = 1;
-let score = 0;
-let isDropping = false;
-let gameOver = false;
-let gameWon = false;
-let dropX = 0;
-let dropLineY = 100;
-let charPrefix = 'ma';
-function resizeCanvas() {
-  canvas = document.getElementById('gameCanvas');
-  ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  gameWidth = window.innerWidth;
-  gameHeight = window.innerHeight;
-  canvas.width = gameWidth * dpr;
-  canvas.height = gameHeight * dpr;
-  canvas.style.width = gameWidth + 'px';
-  canvas.style.height = gameHeight + 'px';
-  ctx.scale(dpr, dpr);
-  dropLineY = 120;
-}
-function initGame(cl) {
-  charPrefix = cl;
-  score = 0;
-  balls = [];
-  isDropping = false;
-  gameOver = false;
-  gameWon = false;
-  document.getElementById('scoreValue').textContent = '0';
-  document.getElementById('winOverlay').classList.remove('show');
-  document.getElementById('loseOverlay').classList.remove('show');
-  if (engine) {
-    World.clear(engine.world);
-    Engine.clear(engine);
-    if (runner) Runner.stop(runner);
-  }
-  resizeCanvas();
-  engine = Engine.create();
-  world = engine.world;
-  engine.gravity.y = 1.2;
-  const wallThickness = 60;
-  const groundY = gameHeight - 20;
-  const leftWall = Bodies.rectangle(-wallThickness/2, gameHeight/2, wallThickness, gameHeight * 2, { isStatic: true });
-  const rightWall = Bodies.rectangle(gameWidth + wallThickness/2, gameHeight/2, wallThickness, gameHeight * 2, { isStatic: true });
-  const ground = Bodies.rectangle(gameWidth/2, groundY + wallThickness/2, gameWidth * 2, wallThickness, { isStatic: true });
-  const topWall = Bodies.rectangle(gameWidth/2, -wallThickness/2, gameWidth * 2, wallThickness, { isStatic: true });
-  walls = [leftWall, rightWall, ground, topWall];
-  World.add(world, walls);
-  nextBallLevel = getRandomStartLevel();
-  spawnNextBall();
-  updateNextBallPreview();
-  Events.on(engine, 'collisionStart', handleCollision);
-  runner = Runner.create();
-  Runner.run(runner, engine);
-  requestAnimationFrame(render);
-  bindInput();
-}
-function getRandomStartLevel() {
-  return Math.floor(Math.random() * 3) + 1;
-}
-function spawnNextBall() {
-  const level = nextBallLevel;
-  dropX = gameWidth / 2;
-  currentBall = { level: level, x: dropX, y: dropLineY };
-  nextBallLevel = getRandomStartLevel();
-  unlockPhoto(charPrefix, level);
-}
-function updateNextBallPreview() {
-  const img = document.getElementById('nextBallImg');
-  img.src = getPhotoPath(charPrefix, nextBallLevel);
-}
-function dropBall() {
-  if (isDropping || gameOver || !currentBall) return;
-  isDropping = true;
-  initAudio();
-  playPop(300 + currentBall.level * 40);
-  const level = currentBall.level;
-  const r = BALL_RADII[level - 1];
-  const ball = Bodies.circle(dropX, dropLineY, r, {
-    restitution: 0.2, friction: 0.1, frictionAir: 0.005,
-    density: 0.001, label: 'ball_' + level
-  });
-  ball.gameLevel = level;
-  ball.merged = false;
-  World.add(world, ball);
-  balls.push(ball);
-  currentBall = null;
-  setTimeout(() => {
-    if (gameOver) return;
-    isDropping = false;
-    spawnNextBall();
-    updateNextBallPreview();
-    checkGameOver();
-  }, 500);
-}
-function handleCollision(event) {
-  const pairs = event.pairs;
-  for (let pair of pairs) {
-    const a = pair.bodyA;
-    const b = pair.bodyB;
-    if (a.gameLevel && b.gameLevel && a.gameLevel === b.gameLevel && !a.merged && !b.merged) {
-      if (a.gameLevel >= 7) continue;
-      a.merged = true; b.merged = true;
-      const midX = (a.position.x + b.position.x) / 2;
-      const midY = (a.position.y + b.position.y) / 2;
-      const newLevel = a.gameLevel + 1;
-      setTimeout(() => {
-        World.remove(world, a);
-        World.remove(world, b);
-        balls = balls.filter(bb => bb !== a && bb !== b);
-        const r = BALL_RADII[newLevel - 1];
-        const newBall = Bodies.circle(midX, midY, r, {
-          restitution: 0.2, friction: 0.1, frictionAir: 0.005,
-          density: 0.001, label: 'ball_' + newLevel
-        });
-        newBall.gameLevel = newLevel;
-        newBall.merged = false;
-        Body.setVelocity(newBall, { x: (b.position.x - a.position.x) * 0.5, y: -2 });
-        World.add(world, newBall);
-        balls.push(newBall);
-        score += SCORE_TABLE[newLevel - 1];
-        document.getElementById('scoreValue').textContent = score;
-        unlockPhoto(charPrefix, newLevel);
-        playMerge(newLevel);
-        if (newLevel === 7) {
-          setTimeout(() => triggerWin(), 800);
+
+    <script>
+        // ============================================================
+        // 1. 预加载 + 进度条
+        // ============================================================
+        const photoCache = {};
+
+        function getPhotoPath(charLevel, level) {
+            return charLevel + level + '.jpg';
         }
-      }, 50);
-      break;
-    }
-  }
-}
-function checkGameOver() {
-  const dangerY = dropLineY + 20;
-  let over = false;
-  for (let ball of balls) {
-    if (ball.position.y - BALL_RADII[ball.gameLevel - 1] < dangerY && Math.abs(ball.velocity.y) < 0.5) {
-      over = true;
-      break;
-    }
-  }
-  if (over) { triggerLose(); }
-}
-function triggerWin() {
-  if (gameWon) return;
-  gameWon = true;
-  gameOver = true;
-  playWin();
-  document.getElementById('winScore').textContent = score;
-  document.getElementById('winPhoto').src = getPhotoPath(charPrefix, 7);
-  document.getElementById('winOverlay').classList.add('show');
-}
-function triggerLose() {
-  if (gameOver) return;
-  gameOver = true;
-  document.getElementById('loseScore').textContent = score;
-  document.getElementById('loseOverlay').classList.add('show');
-}
-function stopGame() {
-  if (runner) Runner.stop(runner);
-}
-function render() {
-  if (currentScreen !== 'game') return;
-  ctx.clearRect(0, 0, gameWidth, gameHeight);
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([5, 8]);
-  ctx.beginPath();
-  ctx.moveTo(0, dropLineY);
-  ctx.lineTo(gameWidth, dropLineY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  for (let ball of balls) {
-    drawBall(ball.position.x, ball.position.y, BALL_RADII[ball.gameLevel - 1], ball.gameLevel);
-  }
-  if (currentBall && !gameOver) {
-    drawBall(dropX, dropLineY, BALL_RADII[currentBall.level - 1], currentBall.level);
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.setLineDash([3, 6]);
-    ctx.beginPath();
-    ctx.moveTo(dropX, dropLineY + BALL_RADII[currentBall.level - 1]);
-    ctx.lineTo(dropX, gameHeight - 20);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  requestAnimationFrame(render);
-}
-function drawBall(x, y, r, level) {
-  const imgKey = charPrefix + level;
-  const img = photoCache[imgKey];
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.closePath();
-  ctx.clip();
-  if (img && img.complete && img.naturalWidth > 0) {
-    const iw = img.naturalWidth;
-    const ih = img.naturalHeight;
-    const scale = Math.max((r * 2) / iw, (r * 2) / ih);
-    const dw = iw * scale;
-    const dh = ih * scale;
-    ctx.drawImage(img, x - dw/2, y - dh/2, dw, dh);
-  } else {
-    ctx.fillStyle = '#222';
-    ctx.fillRect(x - r, y - r, r * 2, r * 2);
-    ctx.fillStyle = '#555';
-    ctx.font = (r * 0.6) + 'px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('?', x, y);
-  }
-  ctx.restore();
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
-function bindInput() {
-  const c = document.getElementById('gameCanvas');
-  let dragging = false;
-  function getX(e) {
-    if (e.touches && e.touches[0]) return e.touches[0].clientX;
-    if (e.clientX !== undefined) return e.clientX;
-    return gameWidth / 2;
-  }
-  function onMove(e) {
-    if (gameOver || !currentBall) return;
-    const x = getX(e);
-    const r = BALL_RADII[currentBall.level - 1];
-    dropX = Math.max(r + 10, Math.min(gameWidth - r - 10, x));
-  }
-  function onDown(e) {
-    initAudio();
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    dragging = true;
-    onMove(e);
-  }
-  function onUp(e) {
-    if (!dragging) return;
-    dragging = false;
-    if (!gameOver && currentBall) { dropBall(); }
-  }
-  c.ontouchstart = function(e) { e.preventDefault(); onDown(e); };
-  c.ontouchmove = function(e) { e.preventDefault(); onMove(e); };
-  c.ontouchend = function(e) { e.preventDefault(); onUp(e); };
-  c.onmousedown = function(e) { onDown(e); };
-  c.onmousemove = function(e) { if (dragging) onMove(e); };
-  c.onmouseup = function(e) { onUp(e); };
-  c.onmouseleave = function(e) { if (dragging) onUp(e); };
-}
-function startGame(cl) {
-  currentCharacter = cl;
-  showScreen('game');
-  setTimeout(() => initGame(cl), 50);
-}
-function restartGame() { initGame(currentCharacter); }
-function backToLevelSelect() { showScreen('levelSelect'); }
-function toggleSound() {
-  soundEnabled = !soundEnabled;
-  document.getElementById('soundOnIcon').style.display = soundEnabled ? '' : 'none';
-  document.getElementById('soundOffIcon').style.display = soundEnabled ? 'none' : '';
-}
-function savePoster() {
-  const a = document.createElement('a');
-  a.href = getPhotoPath(currentCharacter, 7);
-  a.download = (currentCharacter === 'ma' ? '老马' : '老胖') + '终极帅照.jpg';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-window.addEventListener('resize', () => {
-  if (currentScreen === 'game') { resizeCanvas(); }
-});
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    if (runner) Runner.stop(runner);
-  } else {
-    if (currentScreen === 'game' && runner && !gameOver) {
-      Runner.run(runner, engine);
-    }
-  }
-});
-</script>
+
+        function preloadPhotos() {
+            return new Promise((resolve) => {
+                const chars = ['ma', 'pang'];
+                const total = chars.length * 7;
+                let loaded = 0;
+
+                const bar = document.getElementById('loadingBar');
+                const percent = document.getElementById('loadingPercent');
+
+                function updateProgress() {
+                    loaded++;
+                    const pct = Math.min(Math.round((loaded / total) * 100), 100);
+                    bar.style.width = pct + '%';
+                    percent.textContent = pct + '%';
+                    if (loaded >= total) {
+                        resolve();
+                    }
+                }
+
+                chars.forEach(c => {
+                    for (let i = 1; i <= 7; i++) {
+                        const img = new Image();
+                        img.onload = updateProgress;
+                        img.onerror = function() {
+                            // 加载失败也继续，避免卡死
+                            console.warn('图片加载失败:', getPhotoPath(c, i));
+                            updateProgress();
+                        };
+                        img.src = getPhotoPath(c, i);
+                        photoCache[c + i] = img;
+                    }
+                });
+
+                // 安全兜底：如果所有图片都从缓存加载，onload 可能已经同步触发，
+                // 但此时 loaded 可能还没到 total，用 setTimeout 检查一下。
+                // 但更可靠的方式是每张图片加载时都调用 updateProgress，
+                // 如果图片已缓存，onload 会立即触发，loaded 会快速累加。
+                // 如果某些图片加载失败，onerror 也会触发。
+                // 如果 total 为 0（不可能），resolve 不会调用。
+                // 额外加一个保险定时器，防止某些图片不触发 onload/onerror
+                const timer = setTimeout(() => {
+                    // 如果还没完成，强制完成
+                    if (loaded < total) {
+                        console.warn('预加载超时，强制完成');
+                        bar.style.width = '100%';
+                        percent.textContent = '100%';
+                        resolve();
+                    }
+                }, 30000); // 30秒超时
+
+                // 但如果 resolve 先被调用，清除定时器
+                const origResolve = resolve;
+                resolve = function() {
+                    clearTimeout(timer);
+                    origResolve();
+                };
+            });
+        }
+
+        // ============================================================
+        // 2. 页面启动：先加载，再显示主界面
+        // ============================================================
+        async function bootApp() {
+            // 确保加载界面显示
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('loading').classList.add('active');
+
+            // 预加载全部图片
+            await preloadPhotos();
+
+            // 加载完成，切换到主界面
+            document.getElementById('loading').classList.remove('active');
+            document.getElementById('home').classList.add('active');
+            currentScreen = 'home';
+        }
+
+        // 启动
+        bootApp();
+
+        // ============================================================
+        // 3. 原有游戏逻辑（仅做了少量适配）
+        // ============================================================
+        let currentScreen = 'home';
+        let currentCharacter = 'ma';
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        const BALL_RADII = [20, 28, 38, 52, 70, 94, 124];
+        const SCORE_TABLE = [1, 3, 6, 10, 15, 21, 28];
+
+        function initAudio() {
+            if (!audioCtx) {
+                try { audioCtx = new(window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; }
+            }
+        }
+
+        function playPop(freq) {
+            freq = freq || 440;
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } catch (e) {}
+        }
+
+        function playMerge(level) {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                const base = 300 + level * 60;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(base, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(base * 2, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.25);
+            } catch (e) {}
+        }
+
+        function playWin() {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                const notes = [523, 659, 784, 1047];
+                notes.forEach((f, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = f;
+                    gain.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.1);
+                    gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + i * 0.1 + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.1 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(audioCtx.currentTime + i * 0.1);
+                    osc.stop(audioCtx.currentTime + i * 0.1 + 0.3);
+                });
+            } catch (e) {}
+        }
+
+        function showScreen(name) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(name).classList.add('active');
+            currentScreen = name;
+            if (name === 'game') { resizeCanvas(); } else { stopGame(); }
+        }
+
+        function isUnlocked(charLevel, level) {
+            try { return localStorage.getItem('unlocked_' + charLevel + '_' + level) === '1'; } catch (e) { return false; }
+        }
+
+        function unlockPhoto(charLevel, level) {
+            try { localStorage.setItem('unlocked_' + charLevel + '_' + level, '1'); } catch (e) {}
+        }
+
+        let currentTab = 'ma';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            renderCollection();
+        }
+
+        function renderCollection() {
+            const grid = document.getElementById('collectionGrid');
+            const cl = currentTab;
+            const name = cl === 'ma' ? '老马' : '老胖';
+            let html = '';
+            for (let i = 1; i <= 7; i++) {
+                const unlocked = isUnlocked(cl, i);
+                const src = getPhotoPath(cl, i);
+                html += '<div class="collection-item">' +
+                    '<div class="collection-photo ' + (unlocked ? '' : 'locked') + '">' +
+                    (unlocked ? '<img src="' + src + '" alt="' + name + '等级' + i + '">' : '?') +
+                    '</div>' +
+                    '<div class="collection-info">' +
+                    '<div class="collection-level">等级 ' + i + '</div>' +
+                    '<div class="collection-name">' + (unlocked ? '帅照 ' + i : '未解锁') + '</div>' +
+                    '</div>' +
+                    '<button class="download-btn" ' + (unlocked ? '' : 'disabled') + ' onclick="downloadPhoto(\'' + cl +
+                    '\', ' + i + ')">' +
+                    (unlocked ? '下载' : '未解锁') + '</button>' +
+                    '</div>';
+            }
+            grid.innerHTML = html;
+        }
+
+        function showCollection() {
+            renderCollection();
+            showScreen('collection');
+        }
+
+        function getDownloadPath(charLevel, level) {
+            return 'dl_' + charLevel + level + '.jpg';
+        }
+
+        function downloadPhoto(cl, level) {
+            if (!isUnlocked(cl, level)) return;
+            const a = document.createElement('a');
+            a.href = getDownloadPath(cl, level);
+            a.download = (cl === 'ma' ? '老马' : '老胖') + '帅照' + level + '.jpg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        const { Engine, World, Bodies, Body, Events, Composite, Runner } = Matter;
+        let engine, runner, world;
+        let canvas, ctx;
+        let gameWidth, gameHeight;
+        let walls = [];
+        let balls = [];
+        let currentBall = null;
+        let nextBallLevel = 1;
+        let score = 0;
+        let isDropping = false;
+        let gameOver = false;
+        let gameWon = false;
+        let dropX = 0;
+        let dropLineY = 100;
+        let charPrefix = 'ma';
+
+        function resizeCanvas() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            gameWidth = window.innerWidth;
+            gameHeight = window.innerHeight;
+            canvas.width = gameWidth * dpr;
+            canvas.height = gameHeight * dpr;
+            canvas.style.width = gameWidth + 'px';
+            canvas.style.height = gameHeight + 'px';
+            ctx.scale(dpr, dpr);
+            dropLineY = 120;
+        }
+
+        function initGame(cl) {
+            charPrefix = cl;
+            score = 0;
+            balls = [];
+            isDropping = false;
+            gameOver = false;
+            gameWon = false;
+            document.getElementById('scoreValue').textContent = '0';
+            document.getElementById('winOverlay').classList.remove('show');
+            document.getElementById('loseOverlay').classList.remove('show');
+
+            if (engine) {
+                World.clear(engine.world);
+                Engine.clear(engine);
+                if (runner) Runner.stop(runner);
+            }
+
+            resizeCanvas();
+            engine = Engine.create();
+            world = engine.world;
+            engine.gravity.y = 1.2;
+
+            const wallThickness = 60;
+            const groundY = gameHeight - 20;
+            const leftWall = Bodies.rectangle(-wallThickness / 2, gameHeight / 2, wallThickness, gameHeight * 2, { isStatic: true });
+            const rightWall = Bodies.rectangle(gameWidth + wallThickness / 2, gameHeight / 2, wallThickness, gameHeight * 2, { isStatic: true });
+            const ground = Bodies.rectangle(gameWidth / 2, groundY + wallThickness / 2, gameWidth * 2, wallThickness, { isStatic: true });
+            const topWall = Bodies.rectangle(gameWidth / 2, -wallThickness / 2, gameWidth * 2, wallThickness, { isStatic: true });
+            walls = [leftWall, rightWall, ground, topWall];
+            World.add(world, walls);
+
+            nextBallLevel = getRandomStartLevel();
+            spawnNextBall();
+            updateNextBallPreview();
+
+            Events.on(engine, 'collisionStart', handleCollision);
+
+            runner = Runner.create();
+            Runner.run(runner, engine);
+            requestAnimationFrame(render);
+            bindInput();
+        }
+
+        function getRandomStartLevel() {
+            return Math.floor(Math.random() * 3) + 1;
+        }
+
+        function spawnNextBall() {
+            const level = nextBallLevel;
+            dropX = gameWidth / 2;
+            currentBall = { level: level, x: dropX, y: dropLineY };
+            nextBallLevel = getRandomStartLevel();
+            unlockPhoto(charPrefix, level);
+        }
+
+        function updateNextBallPreview() {
+            const img = document.getElementById('nextBallImg');
+            img.src = getPhotoPath(charPrefix, nextBallLevel);
+        }
+
+        function dropBall() {
+            if (isDropping || gameOver || !currentBall) return;
+            isDropping = true;
+            initAudio();
+            playPop(300 + currentBall.level * 40);
+
+            const level = currentBall.level;
+            const r = BALL_RADII[level - 1];
+            const ball = Bodies.circle(dropX, dropLineY, r, {
+                restitution: 0.2,
+                friction: 0.1,
+                frictionAir: 0.005,
+                density: 0.001,
+                label: 'ball_' + level
+            });
+            ball.gameLevel = level;
+            ball.merged = false;
+            World.add(world, ball);
+            balls.push(ball);
+            currentBall = null;
+
+            setTimeout(() => {
+                if (gameOver) return;
+                isDropping = false;
+                spawnNextBall();
+                updateNextBallPreview();
+                checkGameOver();
+            }, 500);
+        }
+
+        function handleCollision(event) {
+            const pairs = event.pairs;
+            for (let pair of pairs) {
+                const a = pair.bodyA;
+                const b = pair.bodyB;
+                if (a.gameLevel && b.gameLevel && a.gameLevel === b.gameLevel && !a.merged && !b.merged) {
+                    if (a.gameLevel >= 7) continue;
+                    a.merged = true;
+                    b.merged = true;
+                    const midX = (a.position.x + b.position.x) / 2;
+                    const midY = (a.position.y + b.position.y) / 2;
+                    const newLevel = a.gameLevel + 1;
+                    setTimeout(() => {
+                        World.remove(world, a);
+                        World.remove(world, b);
+                        balls = balls.filter(bb => bb !== a && bb !== b);
+                        const r = BALL_RADII[newLevel - 1];
+                        const newBall = Bodies.circle(midX, midY, r, {
+                            restitution: 0.2,
+                            friction: 0.1,
+                            frictionAir: 0.005,
+                            density: 0.001,
+                            label: 'ball_' + newLevel
+                        });
+                        newBall.gameLevel = newLevel;
+                        newBall.merged = false;
+                        Body.setVelocity(newBall, { x: (b.position.x - a.position.x) * 0.5, y: -2 });
+                        World.add(world, newBall);
+                        balls.push(newBall);
+                        score += SCORE_TABLE[newLevel - 1];
+                        document.getElementById('scoreValue').textContent = score;
+                        unlockPhoto(charPrefix, newLevel);
+                        playMerge(newLevel);
+                        if (newLevel === 7) {
+                            setTimeout(() => triggerWin(), 800);
+                        }
+                    }, 50);
+                    break;
+                }
+            }
+        }
+
+        function checkGameOver() {
+            const dangerY = dropLineY + 20;
+            let over = false;
+            for (let ball of balls) {
+                if (ball.position.y - BALL_RADII[ball.gameLevel - 1] < dangerY && Math.abs(ball.velocity.y) < 0.5) {
+                    over = true;
+                    break;
+                }
+            }
+            if (over) { triggerLose(); }
+        }
+
+        function triggerWin() {
+            if (gameWon) return;
+            gameWon = true;
+            gameOver = true;
+            playWin();
+            document.getElementById('winScore').textContent = score;
+            document.getElementById('winPhoto').src = getPhotoPath(charPrefix, 7);
+            document.getElementById('winOverlay').classList.add('show');
+        }
+
+        function triggerLose() {
+            if (gameOver) return;
+            gameOver = true;
+            document.getElementById('loseScore').textContent = score;
+            document.getElementById('loseOverlay').classList.add('show');
+        }
+
+        function stopGame() {
+            if (runner) Runner.stop(runner);
+        }
+
+        function render() {
+            if (currentScreen !== 'game') return;
+            ctx.clearRect(0, 0, gameWidth, gameHeight);
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 8]);
+            ctx.beginPath();
+            ctx.moveTo(0, dropLineY);
+            ctx.lineTo(gameWidth, dropLineY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            for (let ball of balls) {
+                drawBall(ball.position.x, ball.position.y, BALL_RADII[ball.gameLevel - 1], ball.gameLevel);
+            }
+
+            if (currentBall && !gameOver) {
+                drawBall(dropX, dropLineY, BALL_RADII[currentBall.level - 1], currentBall.level);
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.setLineDash([3, 6]);
+                ctx.beginPath();
+                ctx.moveTo(dropX, dropLineY + BALL_RADII[currentBall.level - 1]);
+                ctx.lineTo(dropX, gameHeight - 20);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            requestAnimationFrame(render);
+        }
+
+        function drawBall(x, y, r, level) {
+            const imgKey = charPrefix + level;
+            const img = photoCache[imgKey];
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+
+            if (img && img.complete && img.naturalWidth > 0) {
+                const iw = img.naturalWidth;
+                const ih = img.naturalHeight;
+                const scale = Math.max((r * 2) / iw, (r * 2) / ih);
+                const dw = iw * scale;
+                const dh = ih * scale;
+                ctx.drawImage(img, x - dw / 2, y - dh / 2, dw, dh);
+            } else {
+                ctx.fillStyle = '#222';
+                ctx.fillRect(x - r, y - r, r * 2, r * 2);
+                ctx.fillStyle = '#555';
+                ctx.font = (r * 0.6) + 'px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('?', x, y);
+            }
+            ctx.restore();
+
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        function bindInput() {
+            const c = document.getElementById('gameCanvas');
+            let dragging = false;
+
+            function getX(e) {
+                if (e.touches && e.touches[0]) return e.touches[0].clientX;
+                if (e.clientX !== undefined) return e.clientX;
+                return gameWidth / 2;
+            }
+
+            function onMove(e) {
+                if (gameOver || !currentBall) return;
+                const x = getX(e);
+                const r = BALL_RADII[currentBall.level - 1];
+                dropX = Math.max(r + 10, Math.min(gameWidth - r - 10, x));
+            }
+
+            function onDown(e) {
+                initAudio();
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                dragging = true;
+                onMove(e);
+            }
+
+            function onUp(e) {
+                if (!dragging) return;
+                dragging = false;
+                if (!gameOver && currentBall) { dropBall(); }
+            }
+
+            c.ontouchstart = function(e) { e.preventDefault();
+                onDown(e); };
+            c.ontouchmove = function(e) { e.preventDefault();
+                onMove(e); };
+            c.ontouchend = function(e) { e.preventDefault();
+                onUp(e); };
+            c.onmousedown = function(e) { onDown(e); };
+            c.onmousemove = function(e) { if (dragging) onMove(e); };
+            c.onmouseup = function(e) { onUp(e); };
+            c.onmouseleave = function(e) { if (dragging) onUp(e); };
+        }
+
+        function startGame(cl) {
+            currentCharacter = cl;
+            showScreen('game');
+            setTimeout(() => initGame(cl), 50);
+        }
+
+        function restartGame() { initGame(currentCharacter); }
+
+        function backToLevelSelect() { showScreen('levelSelect'); }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundOnIcon').style.display = soundEnabled ? '' : 'none';
+            document.getElementById('soundOffIcon').style.display = soundEnabled ? 'none' : '';
+        }
+
+        function savePoster() {
+            const a = document.createElement('a');
+            a.href = getPhotoPath(currentCharacter, 7);
+            a.download = (currentCharacter === 'ma' ? '老马' : '老胖') + '终极帅照.jpg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        window.addEventListener('resize', () => {
+            if (currentScreen === 'game') { resizeCanvas(); }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (runner) Runner.stop(runner);
+            } else {
+                if (currentScreen === 'game' && runner && !gameOver) {
+                    Runner.run(runner, engine);
+                }
+            }
+        });
+    </script>
 </body>
 </html>
