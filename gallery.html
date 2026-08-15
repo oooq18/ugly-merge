@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="creative-medium" content="visual-report">
+<title>全部 7 级帅照 · 帅照合成大作战</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+                 "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    background: #0a0a0a;
+    color: #f5f5f0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+  .page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px 60px;
+  }
+  .eyebrow {
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(245,245,240,0.35); margin-bottom: 12px;
+  }
+  h1 {
+    font-size: clamp(24px, 6vw, 32px);
+    font-weight: 600; letter-spacing: -0.02em;
+    color: #f5f5f0; margin-bottom: 8px; text-align: center;
+  }
+  .subtitle {
+    font-size: 13px; color: rgba(245,245,240,0.45);
+    letter-spacing: 0.02em; margin-bottom: 40px; text-align: center;
+  }
+  .gallery {
+    width: 100%; max-width: 420px;
+    display: flex; flex-direction: column; gap: 14px; margin-bottom: 48px;
+  }
+  .item {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 16px; background: #141414;
+    border-radius: 16px;
+    border: 1px solid rgba(245,245,240,0.06);
+  }
+  .item .img-wrap {
+    width: 56px; height: 56px; border-radius: 50%;
+    overflow: hidden; flex-shrink: 0;
+    border: 1.5px solid rgba(245,245,240,0.12);
+    background: #1a1a1a;
+  }
+  .item .img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .item .info { flex: 1; min-width: 0; }
+  .item .level {
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: rgba(245,245,240,0.4); margin-bottom: 4px;
+  }
+  .item .desc {
+    font-size: 14px; font-weight: 500;
+    color: #f5f5f0; letter-spacing: -0.01em;
+  }
+  .item.lvl-7 .img-wrap {
+    width: 64px; height: 64px;
+    border-color: rgba(245,245,240,0.25);
+  }
+  .item.lvl-7 .level { color: rgba(245,245,240,0.7); }
+  .cta-wrap { text-align: center; margin-top: auto; }
+  .funny-line {
+    font-size: 12px; color: rgba(245,245,240,0.35);
+    letter-spacing: 0.04em; margin-bottom: 24px; line-height: 1.8;
+  }
+  .play-btn {
+    display: inline-block; background: #f5f5f0; color: #0a0a0a;
+    border: none; padding: 14px 48px;
+    font-size: 15px; font-weight: 500;
+    letter-spacing: 0.04em; border-radius: 999px;
+    cursor: pointer; transition: all 0.2s ease;
+    font-family: inherit; text-decoration: none;
+  }
+  .play-btn:hover { background: #fff; transform: translateY(-1px); }
+  .play-btn:active { transform: translateY(0); opacity: 0.85; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="eyebrow">Gallery</div>
+  <h1>全部 7 级帅照</h1>
+  <p class="subtitle">从最不帅到终极帅，挑战你的极限</p>
+  <div class="gallery">
+    <div class="item">
+      <div class="img-wrap"><img src="https://aka.doubaocdn.com/s/tHThGlFdf6" alt="等级1"></div>
+      <div class="info"><div class="level">等级 1</div><div class="desc">初见之帅</div></div>
+    </div>
+    <div class="item">
+      <div class="img-wrap"><img src="https://aka.doubaocdn.com/s/bbLtZS5mTR" alt="等级2"></div>
+      <div class="info"><div class="level">等级 2</div><div class="desc">略有帅意</div></div>
+    </div>
+    <div class="item">
+      <div class="img-wrap"><img src="https://aka.doubaocdn.com/s/N154iMBFS0" alt="等级3"></div>
+      <div class="info"><div class="level">等级 3</div><div class="desc">帅得明显</div></div>
+    </div>
+    <div class="item">
+      <div class="img-wrap"><img src="https://aka.doubaocdn.com/s/uy0o26Y0g7" alt="等级4"></div>
+      <div class="info"><div class="level">等级 4</div><div class="desc">帅出层次</div></div>
+    </div>
+    <div class="item">
+      <div class="img-wrap"><img src="https://aka.doubaocdn.com/s/pPadV6siDs" alt="等级5"></div>
+      <div class="info"><div class="level">等级 5</div><div class="desc">非常之帅</div></div>
+    </div>
+    <div class="item">
+      <div class="img-wrap"><img src="https://aka.doubaocdn.com/s/8HTzIRyD3I" alt="等级6"></div>
+      <div class="info"><div class="level">等级 6</div><div class="desc">帅到离谱</div></div>
+    </div>
+    <div class="item lvl-7">
+      <div class="img-wrap"><img src="https://aka.doubaocdn.com/s/rd0uBTpMvN" alt="等级7"></div>
+      <div class="info"><div class="level">等级 7  ·  终极</div><div class="desc">终极帅照</div></div>
+    </div>
+  </div>
+  <div class="cta-wrap">
+    <p class="funny-line">敢不敢亲自合成出终极帅照？</p>
+    <a class="play-btn" href="index.html">我也想玩</a>
+  </div>
+</div>
+</body>
+</html>
