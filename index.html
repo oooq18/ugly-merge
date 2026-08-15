@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="creative-medium" content="mini-game">
-    <title>帅照合成大作战</title>
+    <title>帅照合成大作战 · 隐藏关卡</title>
     <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js">
     </script>
     <style>
@@ -197,7 +197,8 @@
         #levelSelect {
             justify-content: flex-start;
             padding-top: 60px;
-            gap: 32px;
+            gap: 24px;
+            overflow-y: auto;
         }
         .section-title {
             font-size: 24px;
@@ -210,6 +211,7 @@
             gap: 16px;
             width: 100%;
             max-width: 400px;
+            padding-bottom: 20px;
         }
         .level-card {
             background: #141414;
@@ -229,13 +231,21 @@
         .level-card:active {
             transform: scale(0.98);
         }
-        .level-avatar {
+        .level-card.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .level-card .level-avatar {
             width: 64px;
             height: 64px;
             border-radius: 50%;
             background: #222;
             flex-shrink: 0;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
         }
         .level-avatar img {
             width: 100%;
@@ -529,7 +539,7 @@
             border-radius: 2px;
         }
 
-        /* ===== 响应式微调 ===== */
+        /* ===== 响应式 ===== */
         @media (max-width: 420px) {
             .loading-title {
                 font-size: 28px;
@@ -541,6 +551,7 @@
             .level-avatar {
                 width: 48px;
                 height: 48px;
+                font-size: 20px;
             }
             .level-name {
                 font-size: 15px;
@@ -587,6 +598,7 @@
                 <div class="section-title">选择关卡</div>
             </div>
             <div class="level-list">
+                <!-- 老马 -->
                 <div class="level-card" onclick="startGame('ma')">
                     <div class="level-avatar"><img src="ma4.jpg" alt="老马"></div>
                     <div class="level-info">
@@ -595,6 +607,7 @@
                     </div>
                     <div class="level-arrow">→</div>
                 </div>
+                <!-- 老胖 -->
                 <div class="level-card" onclick="startGame('pang')">
                     <div class="level-avatar"><img src="pang4.jpg" alt="老胖"></div>
                     <div class="level-info">
@@ -602,6 +615,15 @@
                         <div class="level-desc">胖式帅气，合成最帅胖照</div>
                     </div>
                     <div class="level-arrow">→</div>
+                </div>
+                <!-- 隐藏关卡 -->
+                <div class="level-card disabled" id="hiddenLevelCard" onclick="startGame('hidden')">
+                    <div class="level-avatar" id="hiddenAvatar">🔒</div>
+                    <div class="level-info">
+                        <div class="level-name">隐藏关卡 · 混合挑战</div>
+                        <div class="level-desc" id="hiddenLevelDesc">同时通关老马和老胖解锁</div>
+                    </div>
+                    <div class="level-arrow" id="hiddenArrow">🔒</div>
                 </div>
             </div>
         </div>
@@ -697,7 +719,6 @@
                         const img = new Image();
                         img.onload = updateProgress;
                         img.onerror = function() {
-                            // 加载失败也继续，避免卡死
                             console.warn('图片加载失败:', getPhotoPath(c, i));
                             updateProgress();
                         };
@@ -706,24 +727,15 @@
                     }
                 });
 
-                // 安全兜底：如果所有图片都从缓存加载，onload 可能已经同步触发，
-                // 但此时 loaded 可能还没到 total，用 setTimeout 检查一下。
-                // 但更可靠的方式是每张图片加载时都调用 updateProgress，
-                // 如果图片已缓存，onload 会立即触发，loaded 会快速累加。
-                // 如果某些图片加载失败，onerror 也会触发。
-                // 如果 total 为 0（不可能），resolve 不会调用。
-                // 额外加一个保险定时器，防止某些图片不触发 onload/onerror
                 const timer = setTimeout(() => {
-                    // 如果还没完成，强制完成
                     if (loaded < total) {
                         console.warn('预加载超时，强制完成');
                         bar.style.width = '100%';
                         percent.textContent = '100%';
                         resolve();
                     }
-                }, 30000); // 30秒超时
+                }, 30000);
 
-                // 但如果 resolve 先被调用，清除定时器
                 const origResolve = resolve;
                 resolve = function() {
                     clearTimeout(timer);
@@ -733,32 +745,28 @@
         }
 
         // ============================================================
-        // 2. 页面启动：先加载，再显示主界面
+        // 2. 页面启动
         // ============================================================
         async function bootApp() {
-            // 确保加载界面显示
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('loading').classList.add('active');
-
-            // 预加载全部图片
             await preloadPhotos();
-
-            // 加载完成，切换到主界面
             document.getElementById('loading').classList.remove('active');
             document.getElementById('home').classList.add('active');
             currentScreen = 'home';
+            // 初始更新隐藏关卡状态
+            updateHiddenLevelStatus();
         }
-
-        // 启动
         bootApp();
 
         // ============================================================
-        // 3. 原有游戏逻辑（仅做了少量适配）
+        // 3. 全局变量 & 工具
         // ============================================================
         let currentScreen = 'home';
-        let currentCharacter = 'ma';
+        let currentCharacter = 'ma'; // 'ma' or 'pang' or 'hidden'
         let soundEnabled = true;
         let audioCtx = null;
+        let isHiddenMode = false; // 是否隐藏关卡模式
 
         const BALL_RADII = [20, 28, 38, 52, 70, 94, 124];
         const SCORE_TABLE = [1, 3, 6, 10, 15, 21, 28];
@@ -830,8 +838,40 @@
             document.getElementById(name).classList.add('active');
             currentScreen = name;
             if (name === 'game') { resizeCanvas(); } else { stopGame(); }
+            if (name === 'levelSelect') {
+                updateHiddenLevelStatus();
+            }
         }
 
+        // ============================================================
+        // 4. 隐藏关卡解锁状态
+        // ============================================================
+        function updateHiddenLevelStatus() {
+            const card = document.getElementById('hiddenLevelCard');
+            const desc = document.getElementById('hiddenLevelDesc');
+            const arrow = document.getElementById('hiddenArrow');
+            const avatar = document.getElementById('hiddenAvatar');
+            const unlocked = isUnlocked('ma', 7) && isUnlocked('pang', 7);
+            if (unlocked) {
+                card.classList.remove('disabled');
+                desc.textContent = '双角色混合，挑战极限！';
+                arrow.textContent = '→';
+                avatar.textContent = '⚡';
+                avatar.style.background = 'transparent';
+                avatar.style.fontSize = '32px';
+            } else {
+                card.classList.add('disabled');
+                desc.textContent = '同时通关老马和老胖解锁';
+                arrow.textContent = '🔒';
+                avatar.textContent = '🔒';
+                avatar.style.background = 'transparent';
+                avatar.style.fontSize = '28px';
+            }
+        }
+
+        // ============================================================
+        // 5. localStorage 工具
+        // ============================================================
         function isUnlocked(charLevel, level) {
             try { return localStorage.getItem('unlocked_' + charLevel + '_' + level) === '1'; } catch (e) { return false; }
         }
@@ -840,6 +880,9 @@
             try { localStorage.setItem('unlocked_' + charLevel + '_' + level, '1'); } catch (e) {}
         }
 
+        // ============================================================
+        // 6. 图鉴
+        // ============================================================
         let currentTab = 'ma';
 
         function switchTab(tab) {
@@ -893,21 +936,24 @@
             document.body.removeChild(a);
         }
 
+        // ============================================================
+        // 7. Matter.js 游戏引擎
+        // ============================================================
         const { Engine, World, Bodies, Body, Events, Composite, Runner } = Matter;
         let engine, runner, world;
         let canvas, ctx;
         let gameWidth, gameHeight;
         let walls = [];
         let balls = [];
-        let currentBall = null;
-        let nextBallLevel = 1;
+        let currentBall = null; // {character, level, x, y}
+        let nextBall = { character: 'ma', level: 1 };
         let score = 0;
         let isDropping = false;
         let gameOver = false;
         let gameWon = false;
         let dropX = 0;
         let dropLineY = 100;
-        let charPrefix = 'ma';
+        let charPrefix = 'ma'; // 用于普通模式
 
         function resizeCanvas() {
             canvas = document.getElementById('gameCanvas');
@@ -924,7 +970,8 @@
         }
 
         function initGame(cl) {
-            charPrefix = cl;
+            charPrefix = (cl === 'hidden') ? '' : cl;
+            isHiddenMode = (cl === 'hidden');
             score = 0;
             balls = [];
             isDropping = false;
@@ -954,7 +1001,6 @@
             walls = [leftWall, rightWall, ground, topWall];
             World.add(world, walls);
 
-            nextBallLevel = getRandomStartLevel();
             spawnNextBall();
             updateNextBallPreview();
 
@@ -971,16 +1017,31 @@
         }
 
         function spawnNextBall() {
-            const level = nextBallLevel;
+            if (isHiddenMode) {
+                // 隐藏模式：随机角色和等级 1~3
+                const chars = ['ma', 'pang'];
+                const character = chars[Math.floor(Math.random() * 2)];
+                const level = Math.floor(Math.random() * 3) + 1;
+                nextBall = { character, level };
+            } else {
+                const level = getRandomStartLevel();
+                nextBall = { character: charPrefix, level };
+            }
             dropX = gameWidth / 2;
-            currentBall = { level: level, x: dropX, y: dropLineY };
-            nextBallLevel = getRandomStartLevel();
-            unlockPhoto(charPrefix, level);
+            currentBall = { ...nextBall, x: dropX, y: dropLineY };
+            // 普通模式下解锁当前等级（隐藏模式不重复解锁）
+            if (!isHiddenMode) {
+                unlockPhoto(charPrefix, nextBall.level);
+            }
         }
 
         function updateNextBallPreview() {
             const img = document.getElementById('nextBallImg');
-            img.src = getPhotoPath(charPrefix, nextBallLevel);
+            if (nextBall && nextBall.character) {
+                img.src = getPhotoPath(nextBall.character, nextBall.level);
+            } else {
+                img.src = '';
+            }
         }
 
         function dropBall() {
@@ -989,7 +1050,7 @@
             initAudio();
             playPop(300 + currentBall.level * 40);
 
-            const level = currentBall.level;
+            const { character, level } = currentBall;
             const r = BALL_RADII[level - 1];
             const ball = Bodies.circle(dropX, dropLineY, r, {
                 restitution: 0.2,
@@ -998,6 +1059,7 @@
                 density: 0.001,
                 label: 'ball_' + level
             });
+            ball.character = character;
             ball.gameLevel = level;
             ball.merged = false;
             World.add(world, ball);
@@ -1018,13 +1080,18 @@
             for (let pair of pairs) {
                 const a = pair.bodyA;
                 const b = pair.bodyB;
-                if (a.gameLevel && b.gameLevel && a.gameLevel === b.gameLevel && !a.merged && !b.merged) {
+                if (a.gameLevel && b.gameLevel &&
+                    a.character && b.character &&
+                    a.character === b.character &&
+                    a.gameLevel === b.gameLevel &&
+                    !a.merged && !b.merged) {
                     if (a.gameLevel >= 7) continue;
                     a.merged = true;
                     b.merged = true;
                     const midX = (a.position.x + b.position.x) / 2;
                     const midY = (a.position.y + b.position.y) / 2;
                     const newLevel = a.gameLevel + 1;
+                    const character = a.character;
                     setTimeout(() => {
                         World.remove(world, a);
                         World.remove(world, b);
@@ -1037,6 +1104,7 @@
                             density: 0.001,
                             label: 'ball_' + newLevel
                         });
+                        newBall.character = character;
                         newBall.gameLevel = newLevel;
                         newBall.merged = false;
                         Body.setVelocity(newBall, { x: (b.position.x - a.position.x) * 0.5, y: -2 });
@@ -1044,10 +1112,11 @@
                         balls.push(newBall);
                         score += SCORE_TABLE[newLevel - 1];
                         document.getElementById('scoreValue').textContent = score;
-                        unlockPhoto(charPrefix, newLevel);
+                        // 解锁（普通模式或隐藏模式都解锁对应角色）
+                        unlockPhoto(character, newLevel);
                         playMerge(newLevel);
                         if (newLevel === 7) {
-                            setTimeout(() => triggerWin(), 800);
+                            setTimeout(() => triggerWin(character), 800);
                         }
                     }, 50);
                     break;
@@ -1067,13 +1136,14 @@
             if (over) { triggerLose(); }
         }
 
-        function triggerWin() {
+        function triggerWin(character) {
             if (gameWon) return;
             gameWon = true;
             gameOver = true;
             playWin();
             document.getElementById('winScore').textContent = score;
-            document.getElementById('winPhoto').src = getPhotoPath(charPrefix, 7);
+            // 使用该角色的7级图片
+            document.getElementById('winPhoto').src = getPhotoPath(character, 7);
             document.getElementById('winOverlay').classList.add('show');
         }
 
@@ -1092,6 +1162,7 @@
             if (currentScreen !== 'game') return;
             ctx.clearRect(0, 0, gameWidth, gameHeight);
 
+            // 虚线
             ctx.strokeStyle = 'rgba(255,255,255,0.08)';
             ctx.lineWidth = 1;
             ctx.setLineDash([5, 8]);
@@ -1101,12 +1172,14 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
+            // 画所有球
             for (let ball of balls) {
-                drawBall(ball.position.x, ball.position.y, BALL_RADII[ball.gameLevel - 1], ball.gameLevel);
+                drawBall(ball.position.x, ball.position.y, BALL_RADII[ball.gameLevel - 1], ball.character, ball.gameLevel);
             }
 
+            // 当前待掉落球
             if (currentBall && !gameOver) {
-                drawBall(dropX, dropLineY, BALL_RADII[currentBall.level - 1], currentBall.level);
+                drawBall(dropX, dropLineY, BALL_RADII[currentBall.level - 1], currentBall.character, currentBall.level);
                 ctx.strokeStyle = 'rgba(255,255,255,0.15)';
                 ctx.setLineDash([3, 6]);
                 ctx.beginPath();
@@ -1119,8 +1192,8 @@
             requestAnimationFrame(render);
         }
 
-        function drawBall(x, y, r, level) {
-            const imgKey = charPrefix + level;
+        function drawBall(x, y, r, character, level) {
+            const imgKey = character + level;
             const img = photoCache[imgKey];
             ctx.save();
             ctx.beginPath();
@@ -1195,7 +1268,16 @@
             c.onmouseleave = function(e) { if (dragging) onUp(e); };
         }
 
+        // ============================================================
+        // 8. 游戏控制函数
+        // ============================================================
         function startGame(cl) {
+            // 如果是隐藏关卡但未解锁，阻止进入
+            if (cl === 'hidden') {
+                if (!(isUnlocked('ma', 7) && isUnlocked('pang', 7))) {
+                    return;
+                }
+            }
             currentCharacter = cl;
             showScreen('game');
             setTimeout(() => initGame(cl), 50);
@@ -1212,9 +1294,13 @@
         }
 
         function savePoster() {
+            // 隐藏关卡保存获胜角色的7级图片
+            const winPhoto = document.getElementById('winPhoto');
+            const src = winPhoto.src;
+            if (!src) return;
             const a = document.createElement('a');
-            a.href = getPhotoPath(currentCharacter, 7);
-            a.download = (currentCharacter === 'ma' ? '老马' : '老胖') + '终极帅照.jpg';
+            a.href = src;
+            a.download = '终极帅照.jpg';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1233,6 +1319,11 @@
                 }
             }
         });
+
+        // ============================================================
+        // 9. 初始化（完成预加载后自动进入主界面）
+        // ============================================================
+        // bootApp 已经在最上面调用
     </script>
 </body>
 </html>
