@@ -173,6 +173,8 @@ function parseMusicMeta(src, callback, force) {
             onSuccess: function(tag) {
                 console.log('ID3解析成功，所有字段:', JSON.stringify(tag.tags));
                 const fieldNames = Object.keys(tag.tags).join(',');
+                // 把所有字段显示在标题上
+                document.getElementById('musicTitle').textContent = '字段:' + fieldNames;
                 const hasPic = !!(tag.tags.picture || tag.tags.image);
                 const picInfo = tag.tags.picture ? ('pic数据类型:' + typeof tag.tags.picture.data + ' 长度:' + (tag.tags.picture.data ? tag.tags.picture.data.length : '无') + ' format:' + tag.tags.picture.format) : '无picture';
                 console.log('有封面字段:', hasPic, '字段列表:', fieldNames, picInfo);
