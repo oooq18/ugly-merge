@@ -2,6 +2,7 @@
 // 0. 音乐播放器
 // ============================================================
 // 把音乐文件放到 assets/music/ 文件夹，然后在这里添加文件名
+// 支持格式：mp3 / wav / ogg / flac / m4a
 const musicList = [
     // 'assets/music/你的歌曲1.mp3',
     // 'assets/music/你的歌曲2.mp3',
@@ -45,11 +46,13 @@ function playMusicAt(index) {
     audio.src = musicList[index];
     audio.play().then(() => {
         isMusicPlaying = true;
-        document.getElementById('musicPlayBtn').textContent = '⏸';
+        document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        document.getElementById('music-player').classList.add('playing');
         document.getElementById('musicTitle').textContent = getMusicName(musicList[index]);
     }).catch(() => {
         isMusicPlaying = false;
-        document.getElementById('musicPlayBtn').textContent = '▶';
+        document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+        document.getElementById('music-player').classList.remove('playing');
         document.getElementById('musicTitle').textContent = '点击播放';
     });
 }
@@ -63,11 +66,13 @@ function toggleMusic() {
     if (isMusicPlaying) {
         audio.pause();
         isMusicPlaying = false;
-        document.getElementById('musicPlayBtn').textContent = '▶';
+        document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+        document.getElementById('music-player').classList.remove('playing');
     } else {
         audio.play();
         isMusicPlaying = true;
-        document.getElementById('musicPlayBtn').textContent = '⏸';
+        document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        document.getElementById('music-player').classList.add('playing');
     }
 }
 

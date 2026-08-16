@@ -846,21 +846,54 @@
         /* ===== 音乐播放器 ===== */
         #music-player {
             position: fixed;
-            bottom: calc(env(safe-area-inset-bottom) + 12px);
+            bottom: calc(env(safe-area-inset-bottom) + 16px);
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 8px 16px;
-            background: rgba(20, 20, 20, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            z-index: 9990;
-            max-width: 90vw;
-            animation: riseIn 0.5s var(--ease-out-expo) 0.5s both;
+            gap: 14px;
+            padding: 10px 18px 10px 14px;
+            background: rgba(15, 15, 15, 0.72);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 100px;
+            z-index: 9995;
+            max-width: 88vw;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            animation: musicFadeIn 0.6s var(--ease-out-expo) 0.8s both;
+        }
+        @keyframes musicFadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        #music-player .music-cover {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #333, #1a1a1a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        #music-player .music-cover svg {
+            width: 16px;
+            height: 16px;
+            stroke: rgba(255,255,255,0.4);
+            fill: none;
+            stroke-width: 1.5;
+        }
+        #music-player.playing .music-cover {
+            animation: coverSpin 8s linear infinite;
+            background: linear-gradient(135deg, #444, #222);
+        }
+        #music-player.playing .music-cover svg {
+            stroke: #fff;
+        }
+        @keyframes coverSpin {
+            to { transform: rotate(360deg); }
         }
         #music-player .music-info {
             flex: 1;
@@ -868,46 +901,60 @@
             overflow: hidden;
         }
         #music-player .music-title {
-            font-size: 13px;
-            color: #fff;
+            font-size: 12px;
+            color: rgba(255,255,255,0.85);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 140px;
+            max-width: 120px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
         }
         #music-player .music-controls {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 2px;
         }
         #music-player .music-btn {
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             border: none;
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-            font-size: 12px;
+            background: transparent;
+            color: rgba(255,255,255,0.6);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s, transform 0.2s var(--ease-out-quart);
+            transition: color 0.2s, background 0.2s, transform 0.2s var(--ease-out-quart);
+        }
+        #music-player .music-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: currentColor;
+            stroke-width: 0;
         }
         #music-player .music-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: scale(1.1);
+            color: #fff;
+            background: rgba(255,255,255,0.08);
         }
         #music-player .music-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.9);
         }
         #music-player .play-btn {
             width: 36px;
             height: 36px;
             background: #fff;
             color: #000;
-            font-size: 14px;
+        }
+        #music-player .play-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: #000;
+            fill: #000;
         }
         #music-player .play-btn:hover {
             background: #eee;
+            color: #000;
         }
