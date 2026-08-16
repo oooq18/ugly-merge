@@ -188,10 +188,11 @@ function parseMusicMeta(src, callback) {
                 console.log('ID3解析成功，所有字段:', JSON.stringify(tag.tags));
                 const fieldNames = Object.keys(tag.tags).join(',');
                 const hasPic = !!(tag.tags.picture || tag.tags.image);
-                const picInfo = tag.tags.picture ? ('pic数据类型:' + typeof tag.tags.picture.data + ' 长度:' + (tag.tags.picture.data ? tag.tags.picture.data.length : '无')) : '无picture';
+                const picInfo = tag.tags.picture ? ('pic数据类型:' + typeof tag.tags.picture.data + ' 长度:' + (tag.tags.picture.data ? tag.tags.picture.data.length : '无') + ' format:' + tag.tags.picture.format) : '无picture';
                 console.log('有封面字段:', hasPic, '字段列表:', fieldNames, picInfo);
-                // 调试：把信息显示在标题上
-                document.getElementById('musicTitle').textContent = '字段:' + fieldNames + ' | ' + picInfo;
+                // 调试：把信息显示在左上角div
+                const debugEl = document.getElementById('musicDebug');
+                if (debugEl) debugEl.textContent = '字段:' + fieldNames + ' | ' + picInfo;
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
@@ -220,7 +221,7 @@ function parseMusicMeta(src, callback) {
                             meta.cover = URL.createObjectURL(blob);
                             console.log('封面解析成功, 大小:', uint8.length, '格式:', picture.format || picture.mime, 'URL:', meta.cover.substring(0,50));
                             const debugEl2 = document.getElementById('musicDebug');
-                            if (debugEl2) debugEl2.textContent += ' | 封面URL:' + meta.cover.substring(0,30);
+                            if (debugEl2) debugEl2.textContent += ' | 封面OK! URL:' + meta.cover.substring(0,30);
                             setTimeout(() => setMusicCover(meta.cover), 100);
                         } else {
                             console.log('找到picture但没有data字段:', Object.keys(picture));
