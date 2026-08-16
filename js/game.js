@@ -4,8 +4,11 @@
 // 把音乐文件放到 assets/music/ 文件夹，然后在这里添加文件名
 // 支持格式：mp3 / wav / ogg / flac / m4a
 const musicList = [
+    // 支持两种格式：
+    // 1. 字符串：'assets/music/歌曲.mp3'（自动找同名封面 歌曲.jpg/png）
+    // 2. 对象：{src: 'assets/music/歌曲.mp3', cover: 'assets/music/封面.jpg', name: '自定义歌名'}
     // 'assets/music/你的歌曲1.mp3',
-    // 'assets/music/你的歌曲2.mp3',
+    // {src: 'assets/music/你的歌曲2.flac', cover: 'assets/music/封面2.jpg', name: '我的歌'},
 ];
 let audio = null;
 let currentMusicIndex = -1;
@@ -15,7 +18,7 @@ let musicShufflePos = 0;
 
 function initMusic() {
     if (musicList.length === 0) {
-        document.getElementById('music-player').style.display = 'none';
+        document.getElementById('musicTitle').textContent = '暂无音乐，放入assets/music/即可';
         return;
     }
     audio = new Audio();
@@ -35,20 +38,46 @@ function initMusic() {
     musicShufflePos = 0;
 }
 
-function getMusicName(path) {
+function getMusicName(item) {
+    if (typeof item === 'object' && item.name) return item.name;
+    const path = typeof item === 'string' ? item : item.src;
     const filename = path.split('/').pop();
     return filename.replace(/\.[^/.]+$/, '');
+}
+function getMusicSrc(item) {
+    return typeof item === 'string' ? item : item.src;
+}
+function getMusicCover(item) {
+    if (typeof item === 'object' && item.cover) return item.cover;
+    const path = typeof item === 'string' ? item : item.src;
+    const base = path.replace(/\.[^/.]+$/, '');
+    return base + '.jpg'; // 自动找同名jpg封面
+}
+function setMusicCover(coverPath) {
+    const coverEl = document.querySelector('#music-player .music-cover');
+    if (!coverEl) return;
+    const img = new Image();
+    img.onload = () => {
+        coverEl.innerHTML = '<img src="' + coverPath + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    };
+    img.onerror = () => {
+        coverEl.innerHTML = '<svg viewBox=\"0 0 24 24\"><path d=\"M9 18V5l12-2v13\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/><circle cx=\"18\" cy=\"16\" r=\"3\"/></svg>';
+    };
+    img.src = coverPath;
 }
 
 function playMusicAt(index) {
     if (!audio || musicList.length === 0) return;
     currentMusicIndex = index;
-    audio.src = musicList[index];
+    const item = musicList[index];
+    audio.src = getMusicSrc(item);
+    setMusicCover(getMusicCover(item));
     audio.play().then(() => {
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
-        document.getElementById('musicTitle').textContent = getMusicName(musicList[index]);
+        document.getElementById('musicTitle').textContent = getMusicName(item);
+        renderMusicList();
     }).catch(() => {
         isMusicPlaying = false;
         document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
@@ -86,6 +115,25 @@ function prevMusic() {
     if (!audio || musicList.length === 0) return;
     musicShufflePos = (musicShufflePos - 1 + musicShuffleOrder.length) % musicShuffleOrder.length;
     playMusicAt(musicShuffleOrder[musicShufflePos]);
+}
+function toggleMusicList() {
+    const panel = document.getElementById('music-list-panel');
+    if (!panel) return;
+    panel.classList.toggle('show');
+    if (panel.classList.contains('show')) renderMusicList();
+}
+function renderMusicList() {
+    const grid = document.getElementById('musicListGrid');
+    if (!grid) return;
+    let html = '';
+    musicList.forEach((item, i) => {
+        const isPlaying = (i === currentMusicIndex && isMusicPlaying);
+        html += '<div class="music-list-item' + (isPlaying ? ' active' : '') + '" onclick="playMusicAt(' + i + ');toggleMusicList();">' +
+            '<div class="mli-cover"><img src="' + getMusicCover(item) + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'♫\'"></div>' +
+            '<div class="mli-info"><div class="mli-name">' + getMusicName(item) + '</div>' +
+            '<div class="mli-status">' + (isPlaying ? '正在播放' : '点击播放') + '</div></div></div>';
+    });
+    grid.innerHTML = html;
 }
 
 // ============================================================
