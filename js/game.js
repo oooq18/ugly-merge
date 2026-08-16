@@ -173,8 +173,17 @@ function parseMusicMeta(src, callback, force) {
             onSuccess: function(tag) {
                 console.log('ID3解析成功，所有字段:', JSON.stringify(tag.tags));
                 const fieldNames = Object.keys(tag.tags).join(',');
-                // 把所有字段显示在标题上
-                document.getElementById('musicTitle').textContent = '字段:' + fieldNames;
+                // 把所有字段显示在页面顶部
+                let debugDiv = document.getElementById('id3Debug');
+                if (!debugDiv) {
+                    debugDiv = document.createElement('div');
+                    debugDiv.id = 'id3Debug';
+                    debugDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
+                    document.body.appendChild(debugDiv);
+                }
+                debugDiv.textContent = 'ID3字段: ' + fieldNames + ' | picture存在: ' + !!tag.tags.picture + ' | image存在: ' + !!tag.tags.image;
+                // 打印完整的tag.tags
+                try { debugDiv.textContent += ' | 完整: ' + JSON.stringify(tag.tags).substring(0, 200); } catch(e) {}
                 const hasPic = !!(tag.tags.picture || tag.tags.image);
                 const picInfo = tag.tags.picture ? ('pic数据类型:' + typeof tag.tags.picture.data + ' 长度:' + (tag.tags.picture.data ? tag.tags.picture.data.length : '无') + ' format:' + tag.tags.picture.format) : '无picture';
                 console.log('有封面字段:', hasPic, '字段列表:', fieldNames, picInfo);
