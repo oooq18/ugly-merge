@@ -5,10 +5,10 @@
 // 支持格式：mp3 / wav / ogg / flac / m4a
 const musicList = [
     // 支持两种格式：
-    // 1. 字符串：'music/歌曲.mp3'（自动找同名封面 歌曲.jpg/png）
-    // 2. 对象：{src: 'music/歌曲.mp3', cover: 'music/封面.jpg', name: '自定义歌名'}
-    'music/错位时空.mp3',
-    'music/错位时空.flac',
+    // 1. 字符串：'assets/music/歌曲.mp3'（自动找同名封面 歌曲.jpg/png）
+    // 2. 对象：{src: 'assets/music/歌曲.mp3', cover: 'assets/music/封面.jpg', name: '自定义歌名'}
+    'assets/music/错位时空.mp3',
+    'assets/music/错位时空.flac',
 ];
 let audio = null;
 let currentMusicIndex = -1;
