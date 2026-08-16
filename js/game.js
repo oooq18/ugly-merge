@@ -185,7 +185,11 @@ function parseMusicMeta(src, callback) {
     try {
         jsmediatags.read(src, {
             onSuccess: function(tag) {
-                console.log('ID3解析成功:', JSON.stringify(Object.keys(tag.tags)));
+                console.log('ID3解析成功，所有字段:', JSON.stringify(tag.tags));
+                // 调试：把字段名显示在标题上
+                const fieldNames = Object.keys(tag.tags).join(',');
+                const hasPic = !!(tag.tags.picture || tag.tags.image);
+                console.log('有封面字段:', hasPic, '字段列表:', fieldNames);
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
@@ -212,7 +216,9 @@ function parseMusicMeta(src, callback) {
                             const uint8 = new Uint8Array(dataArr);
                             const blob = new Blob([uint8], {type: picture.format || picture.mime || 'image/jpeg'});
                             meta.cover = URL.createObjectURL(blob);
-                            console.log('封面解析成功, 大小:', uint8.length, '格式:', picture.format || picture.mime);
+                            console.log('封面解析成功, 大小:', uint8.length, '格式:', picture.format || picture.mime, 'URL:', meta.cover.substring(0,50));
+                            // 调试：立即设置封面测试
+                            setTimeout(() => setMusicCover(meta.cover), 100);
                         } else {
                             console.log('找到picture但没有data字段:', Object.keys(picture));
                         }
