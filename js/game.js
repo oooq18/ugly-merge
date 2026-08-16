@@ -102,12 +102,18 @@ function initMusic() {
     audio.loop = false;
     // 用事件同步播放状态，避免手动设置不同步
     audio.addEventListener('play', () => {
+        const d0 = document.getElementById('musicDebug');
+        if (d0) d0.textContent = 'play事件触发! currentPlaySrc=' + currentPlaySrc + ' currentMusicIndex=' + currentMusicIndex;
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
         // 播放成功后解析ID3并更新歌名
         const src = currentPlaySrc;
         console.log('play事件，当前src:', src);
+        if (!src) {
+            if (d0) d0.textContent += ' | src为空!';
+            return;
+        }
         parseMusicMeta(src, function(meta) {
             if (meta) {
                 console.log('ID3结果，有封面:', !!meta.cover, '标题:', meta.title);
