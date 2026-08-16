@@ -200,9 +200,16 @@ function parseMusicMeta(src, callback, force) {
                         if (picData) {
                             const dataArr = Array.isArray(picData) ? picData : Array.from(picData);
                             const uint8 = new Uint8Array(dataArr);
-                            const blob = new Blob([uint8], {type: picture.format || picture.mime || 'image/jpeg'});
-                            meta.cover = URL.createObjectURL(blob);
-                            console.log('封面解析成功, 大小:', uint8.length, '格式:', picture.format || picture.mime, 'URL:', meta.cover.substring(0,50));
+                            // 用data URL，分块转换避免栈溢出
+                            let binary = '';
+                            const chunkSize = 8192;
+                            for (let i = 0; i < uint8.length; i += chunkSize) {
+                                binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunkSize));
+                            }
+                            const base64 = btoa(binary);
+                            const mime = picture.format || picture.mime || 'image/jpeg';
+                            meta.cover = 'data:' + mime + ';base64,' + base64;
+                            console.log('封面解析成功, 大小:', uint8.length, '格式:', mime);
 
                         } else {
                             console.log('找到picture但没有data字段:', Object.keys(picture));
