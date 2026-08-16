@@ -59,14 +59,27 @@ function preloadPhotos() {
 // ============================================================
 // 2. 页面启动
 // ============================================================
+window.onerror = function(msg, url, line, col, error) {
+    console.error('全局错误:', msg, url, line, col);
+    const loading = document.getElementById('loading');
+    if (loading) {
+        loading.innerHTML = '<div style="text-align:center;padding:40px;color:#fff;"><div style="font-size:48px;margin-bottom:20px;">⚠️</div><div style="font-size:18px;margin-bottom:10px;">页面加载出错</div><div style="font-size:14px;color:#888;margin-bottom:20px;">' + msg + '</div><button onclick="location.reload()" style="padding:10px 30px;background:#fff;color:#000;border:none;border-radius:8px;font-size:16px;cursor:pointer;">刷新重试</button></div>';
+    }
+    return false;
+};
 async function bootApp() {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('loading').classList.add('active');
-    await preloadPhotos();
-    document.getElementById('loading').classList.remove('active');
-    document.getElementById('home').classList.add('active');
-    currentScreen = 'home';
-    updateLevelStatus();
+    try {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('loading').classList.add('active');
+        await preloadPhotos();
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('home').classList.add('active');
+        currentScreen = 'home';
+        updateLevelStatus();
+    } catch (e) {
+        console.error('启动失败:', e);
+        window.onerror(e.message);
+    }
 }
 bootApp();
 
@@ -326,7 +339,7 @@ function closePhotoPreview() {
 // ============================================================
 // 7. Matter.js 游戏引擎
 // ============================================================
-const { Engine, World, Bodies, Body, Events, Composite, Runner } = Matter;
+let Engine, World, Bodies, Body, Events, Composite, Runner;
 let engine, runner, world;
 let canvas, ctx;
 let gameWidth, gameHeight;
@@ -358,6 +371,11 @@ function resizeCanvas() {
 }
 
 function initGame(cl) {
+    if (!window.Matter) {
+        alert('物理引擎加载失败，请刷新页面重试');
+        return;
+    }
+    ({ Engine, World, Bodies, Body, Events, Composite, Runner } = Matter);
     charPrefix = (cl === 'hidden' || cl === 'ji') ? '' : cl;
     const isHiddenMode = (cl === 'hidden');
     const isJiMode = (cl === 'ji');
