@@ -158,11 +158,22 @@ function getMusicCover(item) {
     return base + '.jpg'; // 自动找同名jpg封面
 }
 function parseMusicMeta(src, callback, force) {
+    // 调试：显示jsmediatags是否存在
+    let dbg = document.getElementById('id3Debug');
+    if (!dbg) {
+        dbg = document.createElement('div');
+        dbg.id = 'id3Debug';
+        dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#00f;color:#fff;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
+        document.body.appendChild(dbg);
+    }
+    dbg.textContent = 'parseMusicMeta被调用, jsmediatags类型: ' + typeof jsmediatags + ', force: ' + force;
     if (musicMetaCache[src] && !force && musicMetaCache[src].cover) {
+        dbg.textContent += ' | 从缓存读取';
         callback(musicMetaCache[src]);
         return;
     }
     if (typeof jsmediatags === 'undefined') {
+        dbg.textContent += ' | jsmediatags未定义，直接返回';
         console.log('jsmediatags未加载');
         musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
