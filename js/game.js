@@ -180,7 +180,10 @@ function parseMusicMeta(src, callback, force) {
         return;
     }
     try {
-        jsmediatags.read(src, {
+        // 转成绝对URL，jsmediatags需要绝对URL才能用XhrFileReader
+        const absSrc = src.startsWith('http') ? src : new URL(src, window.location.origin).href;
+        dbg.textContent += ' | 绝对URL: ' + absSrc;
+        jsmediatags.read(absSrc, {
             onSuccess: function(tag) {
                 console.log('ID3解析成功，所有字段:', JSON.stringify(tag.tags));
                 const fieldNames = Object.keys(tag.tags).join(',');
