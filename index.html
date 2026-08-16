@@ -8,7 +8,7 @@
     <script src="lib/matter.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* 全部样式保持不变，此处省略（与之前一致） */
+        /* 样式与前一致，保持干净 */
         .gyro-hint {
             position: absolute;
             top: calc(env(safe-area-inset-top) + 80px);
@@ -270,7 +270,7 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- 游戏逻辑（超高灵敏度陀螺仪 + 死区，几乎跟随手机） -->
+    <!-- 游戏逻辑（瓶子摇晃物理优化） -->
     <!-- ============================================================ -->
     <script>
         // ============================================================
@@ -611,7 +611,7 @@
         }
 
         // ============================================================
-        // 6. Matter.js 引擎
+        // 6. Matter.js 引擎（优化物理参数，模拟瓶子摇晃）
         // ============================================================
         const { Engine, World, Bodies, Body, Events, Composite, Runner } = Matter;
         let engine, runner, world;
@@ -631,6 +631,14 @@
         let mergeFlashes = [];
         let isTripleMode = false;
         let tripleCharPool = ['ma', 'pang', 'ji'];
+
+        // 物理参数（瓶子摇晃感）
+        const BALL_FRICTION = 0.8;
+        const BALL_FRICTION_STATIC = 1.0;
+        const BALL_RESTITUTION = 0.1;
+        const BALL_FRICTION_AIR = 0.02;
+        const WALL_FRICTION = 0.5;
+        const WALL_RESTITUTION = 0.1;
 
         function resizeCanvas() {
             canvas = document.getElementById('gameCanvas');
@@ -691,12 +699,29 @@
                 document.getElementById('gyro-permission-overlay').classList.remove('show');
             }
 
+            // 墙壁（增加摩擦，减少弹性）
             const wallThickness = 60;
             const groundY = gameHeight - 20;
-            const leftWall = Bodies.rectangle(-wallThickness / 2, gameHeight / 2, wallThickness, gameHeight * 2, { isStatic: true });
-            const rightWall = Bodies.rectangle(gameWidth + wallThickness / 2, gameHeight / 2, wallThickness, gameHeight * 2, { isStatic: true });
-            const ground = Bodies.rectangle(gameWidth / 2, groundY + wallThickness / 2, gameWidth * 2, wallThickness, { isStatic: true });
-            const topWall = Bodies.rectangle(gameWidth / 2, -wallThickness / 2, gameWidth * 2, wallThickness, { isStatic: true });
+            const leftWall = Bodies.rectangle(-wallThickness / 2, gameHeight / 2, wallThickness, gameHeight * 2, {
+                isStatic: true,
+                friction: WALL_FRICTION,
+                restitution: WALL_RESTITUTION
+            });
+            const rightWall = Bodies.rectangle(gameWidth + wallThickness / 2, gameHeight / 2, wallThickness, gameHeight * 2, {
+                isStatic: true,
+                friction: WALL_FRICTION,
+                restitution: WALL_RESTITUTION
+            });
+            const ground = Bodies.rectangle(gameWidth / 2, groundY + wallThickness / 2, gameWidth * 2, wallThickness, {
+                isStatic: true,
+                friction: WALL_FRICTION,
+                restitution: WALL_RESTITUTION
+            });
+            const topWall = Bodies.rectangle(gameWidth / 2, -wallThickness / 2, gameWidth * 2, wallThickness, {
+                isStatic: true,
+                friction: WALL_FRICTION,
+                restitution: WALL_RESTITUTION
+            });
             walls = [leftWall, rightWall, ground, topWall];
             World.add(world, walls);
 
@@ -717,6 +742,18 @@
             Runner.run(runner, engine);
             requestAnimationFrame(render);
             bindInput();
+        }
+
+        // 球体创建时应用高摩擦、低弹性
+        function createBall(x, y, r, character, level) {
+            return Bodies.circle(x, y, r, {
+                restitution: BALL_RESTITUTION,
+                friction: BALL_FRICTION,
+                frictionStatic: BALL_FRICTION_STATIC,
+                frictionAir: BALL_FRICTION_AIR,
+                density: 0.001,
+                label: 'ball_' + level
+            });
         }
 
         function spawnNextBallTriple() {
@@ -771,13 +808,7 @@
 
             const { character, level } = currentBall;
             const r = BALL_RADII[level - 1];
-            const ball = Bodies.circle(dropX, dropLineY, r, {
-                restitution: 0.2,
-                friction: 0.1,
-                frictionAir: 0.005,
-                density: 0.001,
-                label: 'ball_' + level
-            });
+            const ball = createBall(dropX, dropLineY, r, character, level);
             ball.character = character;
             ball.gameLevel = level;
             ball.merged = false;
@@ -840,13 +871,7 @@
                         World.remove(world, b);
                         balls = balls.filter(bb => bb !== a && bb !== b);
                         const r = BALL_RADII[newLevel - 1];
-                        const newBall = Bodies.circle(midX, midY, r, {
-                            restitution: 0.2,
-                            friction: 0.1,
-                            frictionAir: 0.005,
-                            density: 0.001,
-                            label: 'ball_' + newLevel
-                        });
+                        const newBall = createBall(midX, midY, r, character, newLevel);
                         newBall.character = character;
                         newBall.gameLevel = newLevel;
                         newBall.merged = false;
@@ -1064,12 +1089,13 @@
         }
 
         // ============================================================
-        // 7. 陀螺仪控制（超灵敏度 + 死区）
+        // 7. 陀螺仪控制（平滑滤波，模拟瓶子摇晃）
         // ============================================================
         let gyroInitialized = false;
         let gyroAuthorized = false;
-        const GYRO_SENSITIVITY = 8.0;      // 重力放大倍数（极高）
-        const GYRO_DEAD_ZONE = 2;           // 死区角度（度），小于此值重力归零
+        const GYRO_SENSITIVITY = 6.0;
+        const GYRO_DEAD_ZONE = 2;
+        let filteredGamma = 0; // 用于平滑
 
         function requestGyroPermission() {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission ===
@@ -1100,7 +1126,7 @@
                 window.addEventListener('deviceorientation', handleOrientation, true);
                 gyroInitialized = true;
                 document.getElementById('gyroDot').classList.remove('inactive');
-                console.log('✅ 陀螺仪监听已绑定（超高灵敏度，死区 ' + GYRO_DEAD_ZONE + '°）');
+                console.log('✅ 陀螺仪监听已绑定（瓶子摇晃物理）');
             } else {
                 console.warn('⚠️ 设备不支持陀螺仪');
                 document.getElementById('gyroDot').classList.add('inactive');
@@ -1110,20 +1136,20 @@
         function handleOrientation(event) {
             if (!isTripleMode || !engine || gameOver) return;
             let gamma = event.gamma || 0;
-            // 死区处理：如果 |gamma| < GYRO_DEAD_ZONE，则视为水平
-            let normGamma = 0;
+            // 死区
+            let raw = 0;
             if (Math.abs(gamma) > GYRO_DEAD_ZONE) {
-                // 归一化到 -1 ~ 1，分母 10 表示 10° 即达到最大重力
-                normGamma = Math.max(-1, Math.min(1, gamma / 10));
+                raw = Math.max(-1, Math.min(1, gamma / 10));
             }
+            // 低通滤波，让重力变化更平滑，避免突变
+            filteredGamma = filteredGamma * 0.85 + raw * 0.15;
             // 应用水平重力
-            engine.gravity.x = normGamma * GYRO_SENSITIVITY;
-            engine.gravity.y = 1.2; // 垂直重力固定
+            engine.gravity.x = filteredGamma * GYRO_SENSITIVITY;
+            engine.gravity.y = 1.2;
 
-            // 更新指示条
             const fill = document.getElementById('tiltFill');
             if (fill) {
-                const pct = 50 + normGamma * 40;
+                const pct = 50 + filteredGamma * 40;
                 fill.style.marginLeft = Math.max(0, Math.min(100, pct)) + '%';
             }
         }
@@ -1208,7 +1234,7 @@
         window.savePoster = savePoster;
         window.requestGyroPermission = requestGyroPermission;
 
-        console.log('✅ 帅照合成大作战 v2.4 - 超高灵敏度陀螺仪 + 死区');
+        console.log('✅ 帅照合成大作战 v2.5 - 瓶子摇晃物理优化');
     </script>
 </body>
 </html>
