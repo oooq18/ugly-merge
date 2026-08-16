@@ -89,52 +89,67 @@ function parseMusicMeta(src, callback) {
         return;
     }
     if (typeof jsmediatags === 'undefined') {
+        console.log('jsmediatags未加载');
         callback(null);
         return;
     }
     try {
         jsmediatags.read(src, {
             onSuccess: function(tag) {
+                console.log('ID3解析成功:', JSON.stringify(Object.keys(tag.tags)));
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
                     cover: null
                 };
-                if (tag.tags.picture && tag.tags.picture.data) {
-                    const pic = tag.tags.picture;
+                // 兼容MP3(ID3)和FLAC(Vorbis)的封面字段
+                let picture = tag.tags.picture;
+                if (!picture && tag.tags.image) picture = tag.tags.image;
+                if (picture && picture.data) {
                     try {
-                        // pic.data 可能是数组或Uint8Array
-                        const dataArr = Array.isArray(pic.data) ? pic.data : Array.from(pic.data);
+                        const dataArr = Array.isArray(picture.data) ? picture.data : Array.from(picture.data);
                         const uint8 = new Uint8Array(dataArr);
-                        const blob = new Blob([uint8], {type: pic.format || 'image/jpeg'});
+                        const blob = new Blob([uint8], {type: picture.format || 'image/jpeg'});
                         meta.cover = URL.createObjectURL(blob);
-                        console.log('封面解析成功:', meta.cover.substring(0, 30) + '..., 大小:', uint8.length);
+                        console.log('封面解析成功, 大小:', uint8.length, '格式:', picture.format);
                     } catch(e) {
-                        console.log('封面转换失败:', e);
+                        console.error('封面转换失败:', e);
                     }
                 } else {
-                    console.log('该文件没有内嵌封面');
+                    console.log('标签中没有封面字段，可用字段:', Object.keys(tag.tags));
                 }
                 musicMetaCache[src] = meta;
                 callback(meta);
             },
             onError: function(error) {
-                console.log('ID3解析失败:', error);
+                console.error('ID3解析失败:', error);
                 musicMetaCache[src] = {title: '', artist: '', cover: null};
                 callback(null);
             }
         });
     } catch(e) {
-        console.log('parseMusicMeta异常:', e);
+        console.error('parseMusicMeta异常:', e);
         callback(null);
     }
 }
 
 function setMusicCover(coverPath) {
     const coverEl = document.querySelector('#music-player .music-cover');
-    if (!coverEl || !coverPath) return;
-    // 直接设置innerHTML，blob URL和data URL都能直接用
-    coverEl.innerHTML = '<img src="' + coverPath + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.innerHTML=\'<svg viewBox=\\\"0 0 24 24\\\"><path d=\\\"M9 18V5l12-2v13\\\"/><circle cx=\\\"6\\\" cy=\\\"18\\\" r=\\\"3\\\"/><circle cx=\\\"18\\\" cy=\\\"16\\\" r=\\\"3\\\"/></svg>\'">';
+    if (!coverEl) return;
+    if (!coverPath) {
+        coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+        return;
+    }
+    const img = document.createElement('img');
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+    img.onload = function() {
+        coverEl.innerHTML = '';
+        coverEl.appendChild(img);
+    };
+    img.onerror = function() {
+        coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+    };
+    img.src = coverPath;
 }
 
 function playMusicAt(index) {
@@ -142,27 +157,27 @@ function playMusicAt(index) {
     currentMusicIndex = index;
     const item = musicList[index];
     const src = getMusicSrc(item);
-    // 先显示默认封面和歌名
+    console.log('开始播放:', src);
     setMusicCover(getMusicCover(item));
     document.getElementById('musicTitle').textContent = getMusicName(item) + ' (加载中...)';
     audio.src = src;
-    // 先播放，播放成功后再解析ID3（避免大文件解析阻塞播放）
-    audio.play().then(() => {
-        // 播放成功，解析ID3
-        parseMusicMeta(src, function(meta) {
-            if (meta) {
-                if (meta.cover) setMusicCover(meta.cover);
-                if (meta.title) document.getElementById('musicTitle').textContent = meta.title + (meta.artist ? ' - ' + meta.artist : '');
-            }
-            renderMusicList();
+    audio.load();
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+        playPromise.then(() => {
+            console.log('播放成功');
+            parseMusicMeta(src, function(meta) {
+                if (meta) {
+                    if (meta.cover) setMusicCover(meta.cover);
+                    if (meta.title) document.getElementById('musicTitle').textContent = meta.title + (meta.artist ? ' - ' + meta.artist : '');
+                }
+                renderMusicList();
+            });
+        }).catch((err) => {
+            console.error('播放失败:', err, 'audio.error:', audio.error);
+            document.getElementById('musicTitle').textContent = getMusicName(item) + ' (点击重试)';
         });
-    }).catch((err) => {
-        console.log('播放失败:', err);
-        document.getElementById('musicTitle').textContent = '播放失败，点击重试';
-        isMusicPlaying = false;
-        document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
-        document.getElementById('music-player').classList.remove('playing');
-    });
+    }
 }
 
 function toggleMusic() {
@@ -193,8 +208,16 @@ function prevMusic() {
 function toggleMusicList() {
     const panel = document.getElementById('music-list-panel');
     if (!panel) return;
-    panel.classList.toggle('show');
-    if (panel.classList.contains('show')) renderMusicList();
+    if (panel.classList.contains('show')) {
+        panel.classList.add('closing');
+        setTimeout(() => {
+            panel.classList.remove('show');
+            panel.classList.remove('closing');
+        }, 300);
+    } else {
+        panel.classList.add('show');
+        renderMusicList();
+    }
 }
 function renderMusicList() {
     const grid = document.getElementById('musicListGrid');

@@ -1072,3 +1072,19 @@
         #music-list-panel .music-list-item.active .mli-status {
             color: #4ade80;
         }
+
+        /* 播放列表关闭动画 */
+        #music-list-panel.closing .music-list-content {
+            animation: slideDown 0.3s var(--ease-out-expo) forwards;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(100%); opacity: 0; }
+        }
+        #music-list-panel.closing {
+            animation: fadeOut 0.3s ease forwards;
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
