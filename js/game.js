@@ -15,6 +15,7 @@ let currentMusicIndex = -1;
 let isMusicPlaying = false;
 let musicShuffleOrder = [];
 let musicShufflePos = 0;
+const musicMetaCache = {}; // 缓存ID3解析结果
 
 function initMusic() {
     const player = document.getElementById('music-player');
@@ -72,6 +73,44 @@ function getMusicCover(item) {
     const base = path.replace(/\.[^/.]+$/, '');
     return base + '.jpg'; // 自动找同名jpg封面
 }
+function parseMusicMeta(src, callback) {
+    if (musicMetaCache[src]) {
+        callback(musicMetaCache[src]);
+        return;
+    }
+    if (typeof jsmediatags === 'undefined') {
+        callback(null);
+        return;
+    }
+    try {
+        jsmediatags.read(src, {
+            onSuccess: function(tag) {
+                const meta = {
+                    title: tag.tags.title || '',
+                    artist: tag.tags.artist || '',
+                    cover: null
+                };
+                if (tag.tags.picture && tag.tags.picture.data) {
+                    const pic = tag.tags.picture;
+                    let base64 = '';
+                    for (let i = 0; i < pic.data.length; i++) {
+                        base64 += String.fromCharCode(pic.data[i]);
+                    }
+                    meta.cover = 'data:' + pic.format + ';base64,' + btoa(base64);
+                }
+                musicMetaCache[src] = meta;
+                callback(meta);
+            },
+            onError: function() {
+                musicMetaCache[src] = {title: '', artist: '', cover: null};
+                callback(null);
+            }
+        });
+    } catch(e) {
+        callback(null);
+    }
+}
+
 function setMusicCover(coverPath) {
     const coverEl = document.querySelector('#music-player .music-cover');
     if (!coverEl) return;
@@ -89,13 +128,22 @@ function playMusicAt(index) {
     if (!audio || musicList.length === 0) return;
     currentMusicIndex = index;
     const item = musicList[index];
-    audio.src = getMusicSrc(item);
+    const src = getMusicSrc(item);
+    audio.src = src;
+    // 先显示默认封面
     setMusicCover(getMusicCover(item));
+    document.getElementById('musicTitle').textContent = getMusicName(item);
+    // 解析ID3获取真实封面和歌名
+    parseMusicMeta(src, function(meta) {
+        if (meta) {
+            if (meta.cover) setMusicCover(meta.cover);
+            if (meta.title) document.getElementById('musicTitle').textContent = meta.title + (meta.artist ? ' - ' + meta.artist : '');
+        }
+    });
     audio.play().then(() => {
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
-        document.getElementById('musicTitle').textContent = getMusicName(item);
         renderMusicList();
     }).catch(() => {
         isMusicPlaying = false;
@@ -147,12 +195,23 @@ function renderMusicList() {
     let html = '';
     musicList.forEach((item, i) => {
         const isPlaying = (i === currentMusicIndex && isMusicPlaying);
+        const src = getMusicSrc(item);
+        const meta = musicMetaCache[src];
+        const coverUrl = (meta && meta.cover) ? meta.cover : getMusicCover(item);
+        const name = (meta && meta.title) ? meta.title : getMusicName(item);
         html += '<div class="music-list-item' + (isPlaying ? ' active' : '') + '" onclick="playMusicAt(' + i + ');toggleMusicList();">' +
-            '<div class="mli-cover"><img src="' + getMusicCover(item) + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'♫\'"></div>' +
-            '<div class="mli-info"><div class="mli-name">' + getMusicName(item) + '</div>' +
+            '<div class="mli-cover"><img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'♫\'"></div>' +
+            '<div class="mli-info"><div class="mli-name">' + name + '</div>' +
             '<div class="mli-status">' + (isPlaying ? '正在播放' : '点击播放') + '</div></div></div>';
     });
     grid.innerHTML = html;
+    // 异步解析所有未缓存的音乐封面
+    musicList.forEach((item) => {
+        const src = getMusicSrc(item);
+        if (!musicMetaCache[src]) {
+            parseMusicMeta(src, function() { renderMusicList(); });
+        }
+    });
 }
 
 // ============================================================
