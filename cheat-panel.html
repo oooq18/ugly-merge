@@ -670,7 +670,7 @@
 
         <div class="footer-note">
             <span style="color:#333;">[</span> 本地存储 · 数据永久生效 <span style="color:#333;">]</span>
-            <span style="color:#2a2a2a;margin-left:8px;">// v2.0.0 //</span>
+            <span style="color:#2a2a2a;margin-left:8px;">// v2.1.0 //</span>
         </div>
     </div>
 
@@ -790,7 +790,7 @@
             }
 
             // ============================================================
-            // 3. 验证流程 + 锁屏控制
+            // 3. 验证流程 + 锁屏控制 + 失败跳转
             // ============================================================
             const lockOverlay = document.getElementById('lockOverlay');
             const authInfo = document.getElementById('authInfo');
@@ -806,18 +806,22 @@
                 const ip = await getLocalIP();
 
                 if (!ip) {
-                    // 验证失败：IP 不在内网或无法获取
+                    // 验证失败：IP 不在内网或无法获取 → 显示拒绝并跳转
                     authInfo.innerHTML =
                         `<span class="fail">✘ 访问被拒绝</span> <span style="color:#666;">(未检测到有效内网 IP)</span>`;
                     statusDot.className = 'status-dot';
                     statusText.className = 'status-text';
                     statusText.textContent = '⚠️ ACCESS DENIED';
-                    // 保持锁定，不跳转，界面不可用
+                    // 更新遮罩内容
                     lockOverlay.innerHTML = `
                         <div style="color:#ff0040;font-size:20px;">⛔</div>
                         <div class="lock-text" style="color:#ff0040;">访问被拒绝</div>
-                        <div style="font-size:12px;color:#666;">未检测到内网连接</div>
+                        <div style="font-size:12px;color:#666;">未检测到内网连接，即将跳转...</div>
                     `;
+                    // 2秒后跳转回游戏主页
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
                     return;
                 }
 
@@ -993,7 +997,7 @@
             // ============================================================
             verifyAccess();
 
-            console.log('🔧 黑客风格管理面板 v2.0.0 (允许所有内网IP + 锁屏保护)');
+            console.log('🔧 黑客风格管理面板 v2.1.0 (允许所有内网IP + 失败跳转)');
         })();
     </script>
 </body>
