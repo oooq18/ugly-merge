@@ -103,13 +103,17 @@ function parseMusicMeta(src, callback) {
                 if (tag.tags.picture && tag.tags.picture.data) {
                     const pic = tag.tags.picture;
                     try {
-                        // 用Uint8Array转Blob再创建URL，更可靠
-                        const uint8 = new Uint8Array(pic.data);
-                        const blob = new Blob([uint8], {type: pic.format});
+                        // pic.data 可能是数组或Uint8Array
+                        const dataArr = Array.isArray(pic.data) ? pic.data : Array.from(pic.data);
+                        const uint8 = new Uint8Array(dataArr);
+                        const blob = new Blob([uint8], {type: pic.format || 'image/jpeg'});
                         meta.cover = URL.createObjectURL(blob);
+                        console.log('封面解析成功:', meta.cover.substring(0, 30) + '..., 大小:', uint8.length);
                     } catch(e) {
                         console.log('封面转换失败:', e);
                     }
+                } else {
+                    console.log('该文件没有内嵌封面');
                 }
                 musicMetaCache[src] = meta;
                 callback(meta);
@@ -128,15 +132,9 @@ function parseMusicMeta(src, callback) {
 
 function setMusicCover(coverPath) {
     const coverEl = document.querySelector('#music-player .music-cover');
-    if (!coverEl) return;
-    const img = new Image();
-    img.onload = () => {
-        coverEl.innerHTML = '<img src="' + coverPath + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
-    };
-    img.onerror = () => {
-        coverEl.innerHTML = '<svg viewBox=\"0 0 24 24\"><path d=\"M9 18V5l12-2v13\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/><circle cx=\"18\" cy=\"16\" r=\"3\"/></svg>';
-    };
-    img.src = coverPath;
+    if (!coverEl || !coverPath) return;
+    // 直接设置innerHTML，blob URL和data URL都能直接用
+    coverEl.innerHTML = '<img src="' + coverPath + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.innerHTML=\'<svg viewBox=\\\"0 0 24 24\\\"><path d=\\\"M9 18V5l12-2v13\\\"/><circle cx=\\\"6\\\" cy=\\\"18\\\" r=\\\"3\\\"/><circle cx=\\\"18\\\" cy=\\\"16\\\" r=\\\"3\\\"/></svg>\'">';
 }
 
 function playMusicAt(index) {
@@ -144,21 +142,26 @@ function playMusicAt(index) {
     currentMusicIndex = index;
     const item = musicList[index];
     const src = getMusicSrc(item);
-    audio.src = src;
     // 先显示默认封面和歌名
     setMusicCover(getMusicCover(item));
-    document.getElementById('musicTitle').textContent = getMusicName(item);
-    // 解析ID3获取真实封面和歌名
-    parseMusicMeta(src, function(meta) {
-        if (meta) {
-            if (meta.cover) setMusicCover(meta.cover);
-            if (meta.title) document.getElementById('musicTitle').textContent = meta.title + (meta.artist ? ' - ' + meta.artist : '');
-        }
-        renderMusicList();
-    });
-    // 播放状态由 audio 的 play/pause 事件同步
-    audio.play().catch(() => {
-        document.getElementById('musicTitle').textContent = '点击播放';
+    document.getElementById('musicTitle').textContent = getMusicName(item) + ' (加载中...)';
+    audio.src = src;
+    // 先播放，播放成功后再解析ID3（避免大文件解析阻塞播放）
+    audio.play().then(() => {
+        // 播放成功，解析ID3
+        parseMusicMeta(src, function(meta) {
+            if (meta) {
+                if (meta.cover) setMusicCover(meta.cover);
+                if (meta.title) document.getElementById('musicTitle').textContent = meta.title + (meta.artist ? ' - ' + meta.artist : '');
+            }
+            renderMusicList();
+        });
+    }).catch((err) => {
+        console.log('播放失败:', err);
+        document.getElementById('musicTitle').textContent = '播放失败，点击重试';
+        isMusicPlaying = false;
+        document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+        document.getElementById('music-player').classList.remove('playing');
     });
 }
 
