@@ -254,12 +254,29 @@ function parseMusicMeta(src, callback, force) {
             },
             onError: function(error) {
                 console.error('ID3解析失败:', error);
+                // 显示错误信息
+                let errDiv = document.getElementById('id3Debug');
+                if (!errDiv) {
+                    errDiv = document.createElement('div');
+                    errDiv.id = 'id3Debug';
+                    errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f00;color:#fff;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
+                    document.body.appendChild(errDiv);
+                }
+                errDiv.textContent = 'ID3解析失败: ' + JSON.stringify(error).substring(0, 200);
                 musicMetaCache[src] = {title: '', artist: '', cover: null};
                 callback(null);
             }
         });
     } catch(e) {
         console.error('parseMusicMeta异常:', e);
+        let errDiv2 = document.getElementById('id3Debug');
+        if (!errDiv2) {
+            errDiv2 = document.createElement('div');
+            errDiv2.id = 'id3Debug';
+            errDiv2.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f00;color:#fff;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
+            document.body.appendChild(errDiv2);
+        }
+        errDiv2.textContent = 'parseMusicMeta异常: ' + e.message;
         musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
     }
