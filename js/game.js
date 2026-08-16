@@ -1,4 +1,89 @@
 // ============================================================
+// 0. 音乐播放器
+// ============================================================
+// 把音乐文件放到 assets/music/ 文件夹，然后在这里添加文件名
+const musicList = [
+    // 'assets/music/你的歌曲1.mp3',
+    // 'assets/music/你的歌曲2.mp3',
+];
+let audio = null;
+let currentMusicIndex = -1;
+let isMusicPlaying = false;
+let musicShuffleOrder = [];
+let musicShufflePos = 0;
+
+function initMusic() {
+    if (musicList.length === 0) {
+        document.getElementById('music-player').style.display = 'none';
+        return;
+    }
+    audio = new Audio();
+    audio.loop = false;
+    audio.addEventListener('ended', () => {
+        nextMusic();
+    });
+    audio.addEventListener('error', () => {
+        console.log('音乐加载失败，跳过');
+        nextMusic();
+    });
+    musicShuffleOrder = [...Array(musicList.length).keys()];
+    for (let i = musicShuffleOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [musicShuffleOrder[i], musicShuffleOrder[j]] = [musicShuffleOrder[j], musicShuffleOrder[i]];
+    }
+    musicShufflePos = 0;
+}
+
+function getMusicName(path) {
+    const filename = path.split('/').pop();
+    return filename.replace(/\.[^/.]+$/, '');
+}
+
+function playMusicAt(index) {
+    if (!audio || musicList.length === 0) return;
+    currentMusicIndex = index;
+    audio.src = musicList[index];
+    audio.play().then(() => {
+        isMusicPlaying = true;
+        document.getElementById('musicPlayBtn').textContent = '⏸';
+        document.getElementById('musicTitle').textContent = getMusicName(musicList[index]);
+    }).catch(() => {
+        isMusicPlaying = false;
+        document.getElementById('musicPlayBtn').textContent = '▶';
+        document.getElementById('musicTitle').textContent = '点击播放';
+    });
+}
+
+function toggleMusic() {
+    if (!audio || musicList.length === 0) return;
+    if (currentMusicIndex === -1) {
+        playMusicAt(musicShuffleOrder[musicShufflePos]);
+        return;
+    }
+    if (isMusicPlaying) {
+        audio.pause();
+        isMusicPlaying = false;
+        document.getElementById('musicPlayBtn').textContent = '▶';
+    } else {
+        audio.play();
+        isMusicPlaying = true;
+        document.getElementById('musicPlayBtn').textContent = '⏸';
+    }
+}
+
+function nextMusic() {
+    if (!audio || musicList.length === 0) return;
+    musicShufflePos = (musicShufflePos + 1) % musicShuffleOrder.length;
+    playMusicAt(musicShuffleOrder[musicShufflePos]);
+}
+
+function prevMusic() {
+    if (!audio || musicList.length === 0) return;
+    musicShufflePos = (musicShufflePos - 1 + musicShuffleOrder.length) % musicShuffleOrder.length;
+    playMusicAt(musicShuffleOrder[musicShufflePos]);
+}
+
+// ============================================================
 // 1. 预加载 + 进度条（包含 'ji'）
 // ============================================================
 const photoCache = {};
@@ -76,6 +161,7 @@ async function bootApp() {
         document.getElementById('home').classList.add('active');
         currentScreen = 'home';
         updateLevelStatus();
+        initMusic();
     } catch (e) {
         console.error('启动失败:', e);
         window.onerror(e.message);
@@ -164,6 +250,7 @@ function showScreen(name) {
     if (name === 'game') { resizeCanvas(); } else { stopGame(); }
     if (name === 'levelSelect') {
         updateLevelStatus();
+        initMusic();
     }
     if (name === 'collection') {
         setTimeout(updateTabIndicator, 50);

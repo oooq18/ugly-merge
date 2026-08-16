@@ -15,7 +15,6 @@
         <div id="transition-overlay"></div>
         <!-- 图鉴图片预览 -->
         <div id="photo-preview" onclick="closePhotoPreview()">
-            <button class="preview-close" onclick="event.stopPropagation();closePhotoPreview()">✕</button>
             <div class="preview-img-wrap">
                 <img id="previewImg" src="" alt="预览">
             </div>
@@ -160,6 +159,18 @@
                 <div class="tab" data-tab="ji" onclick="switchTab('ji')">鸡</div>
             </div>
             <div class="collection-grid" id="collectionGrid"></div>
+        </div>
+    </div>
+
+    <!-- 音乐播放器 -->
+    <div id="music-player">
+        <div class="music-info">
+            <div class="music-title" id="musicTitle">未播放</div>
+        </div>
+        <div class="music-controls">
+            <button class="music-btn" onclick="prevMusic()" title="上一首">⏮</button>
+            <button class="music-btn play-btn" id="musicPlayBtn" onclick="toggleMusic()" title="播放/暂停">▶</button>
+            <button class="music-btn" onclick="nextMusic()" title="下一首">⏭</button>
         </div>
     </div>
 
