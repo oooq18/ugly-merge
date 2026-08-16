@@ -12,6 +12,7 @@ const musicList = [
 ];
 let audio = null;
 let currentMusicIndex = -1;
+let currentPlaySrc = ''; // 当前播放的src（相对路径或blob URL）
 let isMusicPlaying = false;
 let musicShuffleOrder = [];
 let musicShufflePos = 0;
@@ -104,10 +105,12 @@ function initMusic() {
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
-        // 播放成功后解析ID3并更新歌名（用相对路径作为缓存key）
-        const src = audio.src.replace(window.location.origin + '/', '');
+        // 播放成功后解析ID3并更新歌名
+        const src = currentPlaySrc;
+        console.log('play事件，当前src:', src);
         parseMusicMeta(src, function(meta) {
             if (meta) {
+                console.log('ID3结果，有封面:', !!meta.cover, '标题:', meta.title);
                 if (meta.cover) setMusicCover(meta.cover);
                 const name = meta.title || getMusicNameBySrc(src);
                 document.getElementById('musicTitle').textContent = name + (meta.artist ? ' - ' + meta.artist : '');
@@ -265,10 +268,12 @@ function setMusicCover(coverPath) {
 function playMusicAt(index) {
     if (!audio || musicList.length === 0) return;
     currentMusicIndex = index;
+    currentPlayingSource = 'online';
     const item = musicList[index];
     const src = getMusicSrc(item);
+    currentPlaySrc = src;
     console.log('开始播放:', src);
-    setMusicCover(null); // 先显示默认图标，等play事件中解析ID3后再设置真实封面
+    setMusicCover(null);
     document.getElementById('musicTitle').textContent = getMusicName(item);
     audio.src = src;
     audio.play().catch((err) => {
@@ -402,7 +407,9 @@ function playMusicFromList(source, index) {
 function playLocalMusicAt(index) {
     if (!audio || localMusicList.length === 0) return;
     currentMusicIndex = index;
+    currentPlayingSource = 'local';
     const song = localMusicList[index];
+    currentPlaySrc = song.url;
     console.log('播放本地音乐:', song.name);
     setMusicCover(null);
     document.getElementById('musicTitle').textContent = song.name.replace(/\.[^/.]+$/, '');
@@ -414,6 +421,8 @@ function playLocalMusicAt(index) {
 
 function switchMusicTab(tab) {
     currentMusicTab = tab;
+    const addBtn = document.querySelector('.music-add-btn');
+    if (addBtn) addBtn.style.display = (tab === 'local') ? 'flex' : 'none';
     renderMusicList();
 }
 
