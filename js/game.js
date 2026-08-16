@@ -238,31 +238,15 @@ function parseMusicMeta(src, callback) {
     }
 }
 
-let _musicCoverVersion = 0;
 function setMusicCover(coverPath) {
     const coverEl = document.querySelector('#music-player .music-cover');
     if (!coverEl) return;
-    const myVersion = ++_musicCoverVersion;
     if (!coverPath) {
-        if (myVersion === _musicCoverVersion) {
-            coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
-        }
+        coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
         return;
     }
-    const img = document.createElement('img');
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
-    img.onload = function() {
-        if (myVersion === _musicCoverVersion) {
-            coverEl.innerHTML = '';
-            coverEl.appendChild(img);
-        }
-    };
-    img.onerror = function() {
-        if (myVersion === _musicCoverVersion) {
-            coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
-        }
-    };
-    img.src = coverPath;
+    // 直接设置innerHTML，旧img被移除后其onerror不会触发，避免竞态
+    coverEl.innerHTML = '<img src="' + coverPath + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.parentElement.innerHTML=\'<svg viewBox=\\\"0 0 24 24\\\" style=\\\"width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;\\\"><path d=\\\"M9 18V5l12-2v13\\\"/><circle cx=\\\"6\\\" cy=\\\"18\\\" r=\\\"3\\\"/><circle cx=\\\"18\\\" cy=\\\"16\\\" r=\\\"3\\\"/></svg>\'">';
 }
 
 function playMusicAt(index) {
@@ -359,7 +343,7 @@ function renderMusicList() {
         if (currentMusicTab === 'online') {
             src = getMusicSrc(item);
             const meta = musicMetaCache[src];
-            coverUrl = (meta && meta.cover) ? meta.cover : getMusicCover(item);
+            coverUrl = (meta && meta.cover) ? meta.cover : '';
             name = (meta && meta.title) ? meta.title : getMusicName(item);
         } else {
             src = item.url;
