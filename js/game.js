@@ -176,6 +176,24 @@ function parseMusicMeta(src, callback, force) {
                 const hasPic = !!(tag.tags.picture || tag.tags.image);
                 const picInfo = tag.tags.picture ? ('pic数据类型:' + typeof tag.tags.picture.data + ' 长度:' + (tag.tags.picture.data ? tag.tags.picture.data.length : '无') + ' format:' + tag.tags.picture.format) : '无picture';
                 console.log('有封面字段:', hasPic, '字段列表:', fieldNames, picInfo);
+                // 测试：直接在页面上显示封面
+                if (tag.tags.picture && tag.tags.picture.data) {
+                    try {
+                        const dataArr = Array.isArray(tag.tags.picture.data) ? tag.tags.picture.data : Array.from(tag.tags.picture.data);
+                        const uint8 = new Uint8Array(dataArr);
+                        let binary = '';
+                        for (let i = 0; i < uint8.length; i += 8192) {
+                            binary += String.fromCharCode.apply(null, uint8.subarray(i, i + 8192));
+                        }
+                        const testImg = document.createElement('img');
+                        testImg.src = 'data:' + (tag.tags.picture.format || 'image/jpeg') + ';base64,' + btoa(binary);
+                        testImg.style.cssText = 'position:fixed;top:50px;left:10px;width:100px;height:100px;z-index:99999;border:2px solid red;';
+                        document.body.appendChild(testImg);
+                        console.log('测试封面已添加到页面');
+                    } catch(e) {
+                        console.error('测试封面创建失败:', e);
+                    }
+                }
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
