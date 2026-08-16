@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>// ACCESS // 存档管理</title>
+    <title>// ACCESS DENIED //</title>
     <style>
         /* ===== 全局重置 & 黑客风格 ===== */
         * {
@@ -26,6 +26,7 @@
             overflow-x: hidden;
         }
 
+        /* 扫描线叠加层 */
         body::before {
             content: '';
             position: fixed;
@@ -39,6 +40,7 @@
             z-index: 9999;
         }
 
+        /* 网格背景 */
         body::after {
             content: '';
             position: fixed;
@@ -51,6 +53,7 @@
             z-index: 9998;
         }
 
+        /* ===== 主容器 ===== */
         .container {
             max-width: 580px;
             width: 100%;
@@ -63,52 +66,12 @@
             z-index: 1;
         }
 
-        .lock-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            gap: 16px;
-            transition: opacity 0.5s ease;
-        }
-
-        .lock-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .lock-overlay .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(0, 255, 65, 0.1);
-            border-top-color: #00ff41;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .lock-overlay .lock-text {
-            font-size: 14px;
-            color: #888;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
+        /* 顶部「断网」状态条 */
         .status-bar {
             background: #1a1a1a;
             border-bottom: 1px solid #00ff41;
             padding: 6px 12px;
-            margin: -24px -20px 12px -20px;
+            margin: -24px -20px 20px -20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -120,6 +83,18 @@
             gap: 4px 12px;
         }
 
+        .status-bar .left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-bar .right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .status-dot {
             display: inline-block;
             width: 8px;
@@ -127,6 +102,11 @@
             background: #ff0040;
             border-radius: 50%;
             animation: blink 1.2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
         }
 
         .status-dot.online {
@@ -142,28 +122,22 @@
             color: #00ff41;
         }
 
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.2; }
+        .glitch {
+            color: #ff0040;
+            text-shadow: 0 0 6px rgba(255, 0, 64, 0.4);
+            animation: glitch 1s infinite;
         }
 
-        .auth-info {
-            background: rgba(0, 20, 0, 0.4);
-            border: 1px solid #1a3a1a;
-            border-radius: 4px;
-            padding: 10px 14px;
-            margin-bottom: 16px;
-            font-size: 12px;
-            line-height: 1.6;
-            color: #aaa;
-            font-family: 'Courier New', monospace;
+        @keyframes glitch {
+            0% { opacity: 1; transform: translateX(0); }
+            20% { opacity: 0.8; transform: translateX(-2px); }
+            40% { opacity: 1; transform: translateX(2px); }
+            60% { opacity: 0.9; transform: translateX(-1px); }
+            80% { opacity: 1; transform: translateX(1px); }
+            100% { opacity: 1; transform: translateX(0); }
         }
 
-        .auth-info .pass { color: #00ff41; }
-        .auth-info .fail { color: #ff0040; }
-        .auth-info .label { color: #666; }
-        .auth-info .value { color: #eee; }
-
+        /* ===== 标题 ===== */
         .header {
             display: flex;
             align-items: baseline;
@@ -189,8 +163,8 @@
         .subtitle {
             font-size: 12px;
             color: #555;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
             border-bottom: 1px dashed #2a2a2a;
             letter-spacing: 0.5px;
         }
@@ -210,8 +184,9 @@
             50% { opacity: 0; }
         }
 
+        /* ===== 通用区块 ===== */
         .section {
-            margin-bottom: 18px;
+            margin-bottom: 20px;
             padding: 14px 16px;
             border: 1px solid #1a3a1a;
             border-radius: 4px;
@@ -224,18 +199,35 @@
             text-transform: uppercase;
             letter-spacing: 2px;
             color: #00ff41;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
             opacity: 0.8;
         }
 
-        .section-title .arrow { color: #00ff41; margin-right: 4px; }
+        .section-title .arrow {
+            color: #00ff41;
+            margin-right: 4px;
+        }
 
-        .btn-group { display: flex; flex-direction: column; gap: 8px; }
-        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn-row .cheat-select { flex: 1; min-width: 70px; }
+        /* ===== 按钮组 ===== */
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-row .cheat-select {
+            flex: 1;
+            min-width: 70px;
+        }
 
         .btn {
             padding: 10px 16px;
@@ -256,21 +248,56 @@
             position: relative;
         }
 
-        .btn::before { content: '> '; color: #00ff41; opacity: 0.6; }
-        .btn:active { transform: scale(0.95); }
-        .btn:hover { background: rgba(0, 255, 65, 0.08); box-shadow: 0 0 20px rgba(0, 255, 65, 0.05); }
+        .btn::before {
+            content: '> ';
+            color: #00ff41;
+            opacity: 0.6;
+        }
 
-        .btn.danger { border-color: #ff0040; color: #ff0040; }
-        .btn.danger::before { content: '! '; color: #ff0040; }
-        .btn.danger:hover { background: rgba(255, 0, 64, 0.08); box-shadow: 0 0 20px rgba(255, 0, 64, 0.05); }
+        .btn:active {
+            transform: scale(0.95);
+        }
 
-        .btn.success { border-color: #00ff41; color: #00ff41; }
-        .btn.success::before { content: '+ '; color: #00ff41; }
+        .btn:hover {
+            background: rgba(0, 255, 65, 0.08);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.05);
+        }
 
-        .btn.primary { border-color: #4a8cff; color: #4a8cff; }
-        .btn.primary::before { content: '# '; color: #4a8cff; }
+        .btn.danger {
+            border-color: #ff0040;
+            color: #ff0040;
+        }
+        .btn.danger::before {
+            content: '! ';
+            color: #ff0040;
+        }
+        .btn.danger:hover {
+            background: rgba(255, 0, 64, 0.08);
+            box-shadow: 0 0 20px rgba(255, 0, 64, 0.05);
+        }
 
-        .btn.full { flex: none; width: 100%; }
+        .btn.success {
+            border-color: #00ff41;
+            color: #00ff41;
+        }
+        .btn.success::before {
+            content: '+ ';
+            color: #00ff41;
+        }
+
+        .btn.primary {
+            border-color: #4a8cff;
+            color: #4a8cff;
+        }
+        .btn.primary::before {
+            content: '# ';
+            color: #4a8cff;
+        }
+
+        .btn.full {
+            flex: none;
+            width: 100%;
+        }
 
         .cheat-select {
             padding: 9px 12px;
@@ -291,9 +318,15 @@
             padding-right: 30px;
         }
 
-        .cheat-select:focus { border-color: #00ff41; }
-        .cheat-select option { background: #0a0a0a; color: #00ff41; }
+        .cheat-select:focus {
+            border-color: #00ff41;
+        }
+        .cheat-select option {
+            background: #0a0a0a;
+            color: #00ff41;
+        }
 
+        /* ===== 消息框 ===== */
         .msg-box {
             margin-top: 12px;
             padding: 12px 16px;
@@ -311,12 +344,31 @@
             font-family: 'Courier New', monospace;
         }
 
-        .msg-box .prompt-symbol { color: #00ff41; opacity: 0.5; margin-right: 4px; }
+        .msg-box .prompt-symbol {
+            color: #00ff41;
+            opacity: 0.5;
+            margin-right: 4px;
+        }
 
-        .msg-box.success { color: #00ff41; border-color: #00ff41; background: rgba(0, 255, 65, 0.05); }
-        .msg-box.error { color: #ff0040; border-color: #ff0040; background: rgba(255, 0, 64, 0.05); }
-        .msg-box.info { color: #4a8cff; border-color: #4a8cff; background: rgba(74, 140, 255, 0.05); }
+        .msg-box.success {
+            color: #00ff41;
+            border-color: #00ff41;
+            background: rgba(0, 255, 65, 0.05);
+        }
 
+        .msg-box.error {
+            color: #ff0040;
+            border-color: #ff0040;
+            background: rgba(255, 0, 64, 0.05);
+        }
+
+        .msg-box.info {
+            color: #4a8cff;
+            border-color: #4a8cff;
+            background: rgba(74, 140, 255, 0.05);
+        }
+
+        /* ===== 角色快捷操作 ===== */
         .role-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -343,7 +395,11 @@
             text-transform: uppercase;
         }
 
-        .role-item .role-btns { display: flex; flex-direction: column; gap: 4px; }
+        .role-item .role-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
 
         .role-item .btn {
             font-size: 10px;
@@ -351,18 +407,27 @@
             flex: none;
             width: 100%;
         }
-        .role-item .btn::before { content: ''; }
+        .role-item .btn::before {
+            content: '';
+        }
 
-        .role-item .btn.danger { border-color: #ff0040; color: #ff0040; }
-        .role-item .btn.success { border-color: #00ff41; color: #00ff41; }
+        .role-item .btn.danger {
+            border-color: #ff0040;
+            color: #ff0040;
+        }
+        .role-item .btn.success {
+            border-color: #00ff41;
+            color: #00ff41;
+        }
 
+        /* ===== 底部 ===== */
         .footer-note {
-            margin-top: 18px;
+            margin-top: 20px;
             font-size: 10px;
             color: #333;
             text-align: center;
             border-top: 1px solid #1a1a1a;
-            padding-top: 14px;
+            padding-top: 16px;
             letter-spacing: 0.5px;
         }
 
@@ -373,31 +438,54 @@
             border-radius: 2px;
         }
 
-        .skip-btn {
-            border-color: #ffa500;
-            color: #ffa500;
-        }
-        .skip-btn::before { content: '⚡ '; color: #ffa500; }
-
+        /* ===== 响应式 ===== */
         @media (max-width: 500px) {
-            .container { padding: 16px 12px 20px; border-width: 1px; }
-            .status-bar { margin: -16px -12px 10px -12px; padding: 4px 10px; font-size: 10px; }
-            .header h1 { font-size: 18px; }
-            .role-grid { grid-template-columns: 1fr 1fr; }
-            .btn { font-size: 11px; padding: 8px 10px; }
-            .section { padding: 10px 10px; }
-            .cheat-select { font-size: 11px; padding: 6px 8px; padding-right: 26px; }
-            .auth-info { font-size: 11px; padding: 8px 10px; }
-            .lock-overlay .lock-text { font-size: 12px; }
+            .container {
+                padding: 16px 12px 20px;
+                border-width: 1px;
+            }
+            .status-bar {
+                margin: -16px -12px 16px -12px;
+                padding: 4px 10px;
+                font-size: 10px;
+            }
+            .header h1 {
+                font-size: 18px;
+            }
+            .role-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .btn {
+                font-size: 11px;
+                padding: 8px 10px;
+            }
+            .section {
+                padding: 10px 10px;
+            }
+            .cheat-select {
+                font-size: 11px;
+                padding: 6px 8px;
+                padding-right: 26px;
+            }
         }
 
         @media (max-width: 380px) {
-            .role-grid { grid-template-columns: 1fr; }
-            .btn-row { flex-direction: column; }
-            .btn-row .cheat-select { min-width: unset; }
+            .role-grid {
+                grid-template-columns: 1fr;
+            }
+            .btn-row {
+                flex-direction: column;
+            }
+            .btn-row .cheat-select {
+                min-width: unset;
+            }
         }
 
-        .flicker { animation: flicker 3s infinite; }
+        /* 额外故障闪烁 */
+        .flicker {
+            animation: flicker 3s infinite;
+        }
+
         @keyframes flicker {
             0% { opacity: 1; }
             3% { opacity: 0.3; }
@@ -410,17 +498,11 @@
 </head>
 <body>
     <div class="container flicker">
-        <!-- 锁屏遮罩 -->
-        <div class="lock-overlay" id="lockOverlay">
-            <div class="spinner"></div>
-            <div class="lock-text"><span class="highlight">⏳</span> 正在验证网络权限...</div>
-        </div>
-
-        <!-- 状态栏 -->
+        <!-- 状态栏 —— 模拟断网/无法加载 -->
         <div class="status-bar">
             <div class="left">
-                <span class="status-dot" id="statusDot"></span>
-                <span class="status-text" id="statusText">⚠️ CONNECTION LOST</span>
+                <span class="status-dot"></span>
+                <span class="status-text">⚠️ CONNECTION LOST</span>
                 <span style="color:#555;">|</span>
                 <span style="color:#666;">OFFLINE MODE</span>
             </div>
@@ -429,11 +511,6 @@
                 <span style="color:#00ff41;">LOCAL</span>
                 <span style="color:#555;margin-left:4px;">[ERR 0x7F]</span>
             </div>
-        </div>
-
-        <!-- 验证信息区域 -->
-        <div class="auth-info" id="authInfo">
-            <span style="color:#666;">⏳ 正在验证访问权限...</span>
         </div>
 
         <!-- 标题 -->
@@ -458,12 +535,15 @@
         <!-- ===== 按角色批量 ===== -->
         <div class="section">
             <div class="section-title"><span class="arrow">▶</span> 按角色批量</div>
-            <div class="role-grid" id="roleGrid"></div>
+            <div class="role-grid" id="roleGrid">
+                <!-- 由 JS 动态生成，便于扩展 -->
+            </div>
         </div>
 
         <!-- ===== 指定操作 ===== -->
         <div class="section">
             <div class="section-title"><span class="arrow">▶</span> 精确指令</div>
+            <!-- 清除指定 -->
             <div style="margin-bottom: 10px;">
                 <div style="font-size:11px; color:#666; margin-bottom:4px; padding-left:2px;">清除指定照片</div>
                 <div class="btn-row">
@@ -484,6 +564,7 @@
                     <button class="btn danger" onclick="clearSpecific()">清除</button>
                 </div>
             </div>
+            <!-- 解锁指定 -->
             <div>
                 <div style="font-size:11px; color:#666; margin-bottom:4px; padding-left:2px;">解锁指定照片</div>
                 <div class="btn-row">
@@ -513,226 +594,28 @@
 
         <div class="footer-note">
             <span style="color:#333;">[</span> 本地存储 · 数据永久生效 <span style="color:#333;">]</span>
-            <span style="color:#2a2a2a;margin-left:8px;">// v2.3.0 //</span>
+            <span style="color:#2a2a2a;margin-left:8px;">// v1.3.7 //</span>
         </div>
     </div>
 
     <script>
         (function() {
-            // ============================================================
-            // 1. 获取内网 IP（严格超时 + 多重保障）
-            // ============================================================
-            // ★★★ 修改点：只要 IP 以 192.168. 开头即可通过 ★★★
-            function isAllowedIP(ip) {
-                if (!ip) return false;
-                // 允许 192.168.x.x 所有子段
-                if (ip.startsWith('192.168.')) return true;
-                // 同时保留其他私有地址段（10.x.x.x, 172.16-31.x.x）也可选
-                // 但如果您只想开放 192.168，可以注释掉下面两行
-                if (ip.startsWith('10.')) return true;
-                if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip)) return true;
-                if (ip === '127.0.0.1') return true;
-                return false;
-            }
-
-            function getLocalIP() {
-                return new Promise((resolve) => {
-                    let resolved = false;
-                    const timer = setTimeout(() => {
-                        if (!resolved) {
-                            resolved = true;
-                            resolve(null);
-                        }
-                    }, 2000); // 2 秒超时
-
-                    try {
-                        const pc = new RTCPeerConnection({ iceServers: [] });
-                        pc.createDataChannel('');
-                        pc.createOffer()
-                            .then(offer => pc.setLocalDescription(offer))
-                            .catch(() => {
-                                if (!resolved) {
-                                    resolved = true;
-                                    clearTimeout(timer);
-                                    resolve(null);
-                                }
-                            });
-
-                        pc.onicecandidate = (event) => {
-                            if (!event || !event.candidate) return;
-                            const candidate = event.candidate.candidate;
-                            const ipMatch = candidate.match(/(\d{1,3}\.){3}\d{1,3}/);
-                            if (ipMatch) {
-                                const ip = ipMatch[0];
-                                if (isAllowedIP(ip)) {
-                                    if (!resolved) {
-                                        resolved = true;
-                                        clearTimeout(timer);
-                                        resolve(ip);
-                                        pc.close();
-                                    }
-                                }
-                            }
-                        };
-
-                        // 额外保险：1.2 秒后若无候选则关闭连接
-                        setTimeout(() => {
-                            if (!resolved) {
-                                pc.close();
-                            }
-                        }, 1200);
-                    } catch (e) {
-                        if (!resolved) {
-                            resolved = true;
-                            clearTimeout(timer);
-                            resolve(null);
-                        }
-                    }
-                });
-            }
-
-            // ============================================================
-            // 2. 浏览器/设备信息（仅显示）
-            // ============================================================
-            function getBrowserInfo() {
-                const ua = navigator.userAgent;
-                let name = 'Unknown',
-                    version = 'Unknown';
-                if (ua.indexOf('Firefox') > -1) {
-                    name = 'Firefox';
-                    const m = ua.match(/Firefox\/([\d.]+)/);
-                    if (m) version = m[1];
-                } else if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) {
-                    name = 'Chrome';
-                    const m = ua.match(/Chrome\/([\d.]+)/);
-                    if (m) version = m[1];
-                } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
-                    name = 'Safari';
-                    const m = ua.match(/Version\/([\d.]+)/);
-                    if (m) version = m[1];
-                } else if (ua.indexOf('Edg') > -1) {
-                    name = 'Edge';
-                    const m = ua.match(/Edg\/([\d.]+)/);
-                    if (m) version = m[1];
-                } else if (ua.indexOf('Opera') > -1 || ua.indexOf('OPR') > -1) {
-                    name = 'Opera';
-                    const m = ua.match(/(?:Opera|OPR)\/([\d.]+)/);
-                    if (m) version = m[1];
-                }
-                return { name, version };
-            }
-
-            function getDeviceInfo() {
-                const ua = navigator.userAgent;
-                let platform = navigator.platform || 'Unknown';
-                let model = '';
-                if (ua.indexOf('iPhone') > -1) {
-                    const match = ua.match(/iPhone(\d+,\d+)/);
-                    if (match) {
-                        const code = match[1];
-                        const map = {
-                            '13,3': 'iPhone 12 Pro',
-                            '13,4': 'iPhone 12 Pro Max',
-                            '14,2': 'iPhone 13 Pro',
-                            '14,3': 'iPhone 13 Pro Max',
-                            '15,2': 'iPhone 14 Pro',
-                            '15,3': 'iPhone 14 Pro Max'
-                        };
-                        model = map[code] || 'iPhone (' + code + ')';
-                    } else {
-                        model = 'iPhone';
-                    }
-                } else if (ua.indexOf('iPad') > -1) {
-                    model = 'iPad';
-                } else if (ua.indexOf('Android') > -1) {
-                    model = 'Android Device';
-                } else {
-                    model = platform;
-                }
-                return model;
-            }
-
-            // ============================================================
-            // 3. 验证流程 + 锁屏控制 + 失败时显示跳过按钮
-            // ============================================================
-            const lockOverlay = document.getElementById('lockOverlay');
-            const authInfo = document.getElementById('authInfo');
-            const statusDot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
-
-            lockOverlay.classList.remove('hidden');
-
-            async function verifyAccess() {
-                authInfo.innerHTML = `<span style="color:#666;">⏳ 正在验证访问权限...</span>`;
-
-                const ip = await getLocalIP();
-
-                if (!ip) {
-                    authInfo.innerHTML =
-                        `<span class="fail">✘ 访问被拒绝</span> <span style="color:#666;">(未检测到 192.168.x.x 内网 IP)</span>`;
-                    statusDot.className = 'status-dot';
-                    statusText.className = 'status-text';
-                    statusText.textContent = '⚠️ ACCESS DENIED';
-                    lockOverlay.innerHTML = `
-                        <div style="color:#ff0040;font-size:20px;">⛔</div>
-                        <div class="lock-text" style="color:#ff0040;">访问被拒绝</div>
-                        <div style="font-size:12px;color:#666;margin-top:-4px;">未检测到 192.168.x.x 内网 IP</div>
-                        <button class="btn skip-btn" id="forceSkipBtn" style="margin-top:12px;">⚡ 手动跳过验证</button>
-                        <div style="font-size:11px;color:#555;margin-top:8px;">（仅用于调试，点击后直接进入）</div>
-                    `;
-                    document.getElementById('forceSkipBtn').addEventListener('click', function() {
-                        if (confirm('⚠️ 跳过验证将允许任何人访问，仅用于调试！确定继续？')) {
-                            forceUnlock();
-                        }
-                    });
-                    return;
-                }
-
-                // 验证通过
-                const browser = getBrowserInfo();
-                const device = getDeviceInfo();
-
-                statusDot.className = 'status-dot online';
-                statusText.className = 'status-text online';
-                statusText.textContent = '✅ VERIFIED';
-
-                authInfo.innerHTML = `
-                    <div><span class="pass">✔</span> <span class="label">验证状态：</span><span class="pass">已通过</span></div>
-                    <div><span class="pass">✔</span> <span class="label">内网 IP：</span><span class="value">${ip}</span></div>
-                    <div><span class="pass">✔</span> <span class="label">设备机型：</span><span class="value">${device}</span></div>
-                    <div><span class="pass">✔</span> <span class="label">浏览器：</span><span class="value">${browser.name} ${browser.version}</span></div>
-                `;
-
-                lockOverlay.classList.add('hidden');
-                showMsg('✅ 验证通过，欢迎使用管理终端', 'success');
-                initStats();
-            }
-
-            function forceUnlock() {
-                lockOverlay.classList.add('hidden');
-                statusDot.className = 'status-dot online';
-                statusText.className = 'status-text online';
-                statusText.textContent = '⚠️ SKIP MODE';
-                authInfo.innerHTML = `<span style="color:#ffa500;">⚠ 验证已手动跳过</span> 请确保您有权限操作。`;
-                showMsg('已跳过验证，管理功能可用。', 'info');
-                initStats();
-            }
-
-            // ============================================================
-            // 4. 存档管理功能（与之前相同）
-            // ============================================================
+            // ---------- 常量 ----------
             const CHARS = ['ma', 'pang', 'ji'];
             const CHAR_NAMES = { ma: '老马', pang: '老胖', ji: '鸡' };
 
+            // ---------- 工具 ----------
             function getKey(char, level) {
                 return 'unlocked_' + char + '_' + level;
             }
 
             function showMsg(text, type) {
                 const el = document.getElementById('msgBox');
+                // 清除旧内容，保留提示符
                 el.innerHTML = '<span class="prompt-symbol">$</span> ' + text;
                 el.className = 'msg-box ' + (type || '');
                 clearTimeout(el._timer);
+                // 5秒后自动淡化（但不清除文字）
                 el._timer = setTimeout(() => {
                     if (el.classList.contains('success') || el.classList.contains('error') || el.classList
                         .contains('info')) {
@@ -743,6 +626,7 @@
                 }, 5000);
             }
 
+            // ---------- 批量操作 ----------
             window.clearAllPhotos = function() {
                 if (!confirm('⚠️ 确定要清除全部已解锁的照片吗？此操作不可撤销！')) return;
                 let count = 0;
@@ -773,6 +657,7 @@
                 showMsg(`已解锁 ${count} 张照片`, 'success');
             };
 
+            // ---------- 按角色批量 ----------
             window.unlockRoleAll = function(char) {
                 const name = CHAR_NAMES[char];
                 if (!confirm(`🔓 确定要解锁 ${name} 全部 7 张照片吗？`)) return;
@@ -801,6 +686,7 @@
                 showMsg(`已清除 ${name} 的 ${count} 张解锁记录`, 'success');
             };
 
+            // 渲染角色网格
             function renderRoleGrid() {
                 const grid = document.getElementById('roleGrid');
                 let html = '';
@@ -820,10 +706,12 @@
             }
             renderRoleGrid();
 
+            // ---------- 指定清除 ----------
             window.clearSpecific = function() {
                 const char = document.getElementById('clearChar').value;
                 const level = parseInt(document.getElementById('clearLevel').value);
                 const key = getKey(char, level);
+
                 if (localStorage.getItem(key) !== '1') {
                     showMsg(`${CHAR_NAMES[char]} 等级 ${level} 尚未解锁，无需清除`, 'info');
                     return;
@@ -832,10 +720,12 @@
                 showMsg(`已清除 ${CHAR_NAMES[char]} 等级 ${level} 的解锁`, 'success');
             };
 
+            // ---------- 指定解锁 ----------
             window.unlockSpecific = function() {
                 const char = document.getElementById('unlockChar').value;
                 const level = parseInt(document.getElementById('unlockLevel').value);
                 const key = getKey(char, level);
+
                 if (localStorage.getItem(key) === '1') {
                     showMsg(`${CHAR_NAMES[char]} 等级 ${level} 已解锁`, 'info');
                     return;
@@ -844,9 +734,10 @@
                 showMsg(`已解锁 ${CHAR_NAMES[char]} 等级 ${level}`, 'success');
             };
 
-            function initStats() {
-                let total = 0,
-                    unlocked = 0;
+            // ---------- 初始化状态 ----------
+            window.addEventListener('DOMContentLoaded', function() {
+                let total = 0;
+                let unlocked = 0;
                 for (const c of CHARS) {
                     for (let l = 1; l <= 7; l++) {
                         total++;
@@ -858,13 +749,9 @@
                 } else {
                     showMsg('存档为空，可执行“一键解锁全部照片”', 'info');
                 }
-            }
+            });
 
-            // ============================================================
-            // 5. 启动
-            // ============================================================
-            verifyAccess();
-            console.log('🔧 管理面板 v2.3.0 (允许所有 192.168.x.x IP)');
+            console.log('🔧 黑客风格独立管理面板已加载');
         })();
     </script>
 </body>
