@@ -8,7 +8,7 @@
     <script src="lib/matter.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* 新增样式 */
+        /* 原有样式保留，新增解锁动画 */
         .gyro-hint {
             position: absolute;
             top: calc(env(safe-area-inset-top) + 80px);
@@ -81,6 +81,7 @@
         .level-card.triple-card .level-avatar {
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
             border: 2px solid rgba(255,215,0,0.3);
+            transition: border-color 0.3s;
         }
         .level-card.triple-card .level-name { color: #ffd700; }
         .level-card.triple-card .level-arrow { color: #ffd700; }
@@ -109,6 +110,22 @@
         }
         #gyro-permission-overlay.show { display: flex; }
         #gyro-permission-overlay .btn { max-width: 200px; margin: 0 auto; }
+
+        /* 新增：解锁脉冲动画 */
+        .level-card.unlock-pulse {
+            animation: unlockPulse 0.8s ease-out forwards;
+        }
+        @keyframes unlockPulse {
+            0% { transform: scale(0.92); border-color: #ffd700; box-shadow: 0 0 0 rgba(255,215,0,0.6); }
+            30% { transform: scale(1.04); border-color: #ffd700; box-shadow: 0 0 30px rgba(255,215,0,0.8); }
+            60% { transform: scale(0.98); border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.4); }
+            100% { transform: scale(1); border-color: #222; box-shadow: none; }
+        }
+        /* 卡片入场动画重触发 */
+        .level-card.animate-in {
+            animation: riseIn 0.5s var(--ease-out-expo) both;
+        }
+
         @media (max-width: 420px) {
             .gyro-hint { font-size: 11px; padding: 6px 14px; top: calc(env(safe-area-inset-top) + 70px); }
             .tilt-indicator { font-size: 10px; padding: 4px 10px; }
@@ -259,7 +276,7 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- 游戏逻辑（含陀螺仪修复和权限请求） -->
+    <!-- 游戏逻辑（含陀螺仪修复、灵敏度提升、解锁动画） -->
     <!-- ============================================================ -->
     <script>
         // ============================================================
@@ -399,12 +416,24 @@
             document.getElementById(name).classList.add('active');
             currentScreen = name;
             if (name === 'game') { resizeCanvas(); } else { stopGame(); }
-            if (name === 'levelSelect') updateLevelStatus();
+            if (name === 'levelSelect') {
+                updateLevelStatus();
+                // 触发卡片入场动画（重新添加 animate-in 类）
+                document.querySelectorAll('.level-card').forEach((card, idx) => {
+                    card.classList.remove('animate-in');
+                    // 强制重排
+                    void card.offsetWidth;
+                    // 加延迟以错开
+                    setTimeout(() => {
+                        card.classList.add('animate-in');
+                    }, idx * 60);
+                });
+            }
             if (name === 'collection') setTimeout(updateTabIndicator, 50);
         }
 
         // ============================================================
-        // 4. 解锁状态
+        // 4. 解锁状态（新增动画触发）
         // ============================================================
         function updateLevelStatus() {
             const unlockedMa = isUnlocked('ma', 7);
@@ -413,6 +442,7 @@
             const unlockedMaPang = unlockedMa && unlockedPang;
             const unlockedAll = unlockedMa && unlockedPang && unlockedJi;
 
+            // 第三关
             const hiddenCard = document.getElementById('hiddenLevelCard');
             const hiddenDesc = document.getElementById('hiddenLevelDesc');
             const hiddenArrow = document.getElementById('hiddenArrow');
@@ -431,6 +461,7 @@
                 hiddenAvatar.style.fontSize = '28px';
             }
 
+            // 第四关
             const jiCard = document.getElementById('jiLevelCard');
             const jiDesc = document.getElementById('jiLevelDesc');
             const jiArrow = document.getElementById('jiArrow');
@@ -451,11 +482,14 @@
                 if (jiLock) jiLock.style.display = 'flex';
             }
 
+            // 第五关 - 三人混合（带解锁动画）
             const tripleCard = document.getElementById('tripleLevelCard');
             const tripleDesc = document.getElementById('tripleLevelDesc');
             const tripleArrow = document.getElementById('tripleArrow');
             const tripleImg = document.getElementById('tripleImg');
             const tripleLock = document.getElementById('tripleLockOverlay');
+
+            const wasDisabled = tripleCard.classList.contains('disabled');
             if (unlockedAll) {
                 tripleCard.classList.remove('disabled');
                 tripleDesc.textContent = '三人合一，陀螺仪控制！';
@@ -463,6 +497,16 @@
                 if (tripleImg) { tripleImg.src = 'assets/images/ma4.jpg';
                     tripleImg.style.display = 'block'; }
                 if (tripleLock) tripleLock.style.display = 'none';
+                // 如果之前是锁定状态，触发脉冲动画
+                if (wasDisabled) {
+                    tripleCard.classList.remove('unlock-pulse');
+                    void tripleCard.offsetWidth; // 强制重排
+                    tripleCard.classList.add('unlock-pulse');
+                    // 动画结束后移除类，以便下次重新触发
+                    setTimeout(() => {
+                        tripleCard.classList.remove('unlock-pulse');
+                    }, 900);
+                }
             } else {
                 tripleCard.classList.add('disabled');
                 tripleDesc.textContent = '同时通关老马、老胖、鸡解锁';
@@ -649,12 +693,10 @@
                 document.getElementById('gyroHint').classList.add('show');
                 document.getElementById('tiltIndicator').classList.add('show');
                 document.getElementById('nextBox').style.display = 'none';
-                // 显示权限请求遮罩（如果未授权）
                 if (!gyroAuthorized) {
                     document.getElementById('gyro-permission-overlay').classList.add('show');
                 } else {
                     document.getElementById('gyro-permission-overlay').classList.remove('show');
-                    // 确保监听已添加
                     if (!gyroInitialized) initGyroscope();
                 }
             } else {
@@ -1037,11 +1079,11 @@
         }
 
         // ============================================================
-        // 7. 陀螺仪控制（修复版）
+        // 7. 陀螺仪控制（灵敏度提升：系数 4.0，分母 20）
         // ============================================================
         let gyroInitialized = false;
         let gyroAuthorized = false;
-        const GYRO_SENSITIVITY = 1.8;
+        const GYRO_SENSITIVITY = 4.0;      // 重力放大倍数
 
         function requestGyroPermission() {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission ===
@@ -1060,7 +1102,6 @@
                         alert('无法获取陀螺仪权限，请检查设置');
                     });
             } else {
-                // 非 iOS 13+ 直接尝试监听
                 gyroAuthorized = true;
                 document.getElementById('gyro-permission-overlay').classList.remove('show');
                 initGyroscope();
@@ -1073,7 +1114,7 @@
                 window.addEventListener('deviceorientation', handleOrientation, true);
                 gyroInitialized = true;
                 document.getElementById('gyroDot').classList.remove('inactive');
-                console.log('✅ 陀螺仪监听已绑定');
+                console.log('✅ 陀螺仪监听已绑定（灵敏度提升）');
             } else {
                 console.warn('⚠️ 设备不支持陀螺仪');
                 document.getElementById('gyroDot').classList.add('inactive');
@@ -1081,25 +1122,18 @@
         }
 
         function handleOrientation(event) {
-            if (!isTripleMode || !engine || gameOver) {
-                return;
-            }
+            if (!isTripleMode || !engine || gameOver) return;
             let gamma = event.gamma || 0;
-            // 限制范围 -45° ~ 45°
-            const normGamma = Math.max(-1, Math.min(1, gamma / 45));
-            // 应用水平重力
+            // 归一化基准角度改为 20°，使同样倾斜产生更大重力
+            const normGamma = Math.max(-1, Math.min(1, gamma / 20));
             engine.gravity.x = normGamma * GYRO_SENSITIVITY;
-            // 垂直保持固定
             engine.gravity.y = 1.2;
 
-            // 更新指示条
             const fill = document.getElementById('tiltFill');
             if (fill) {
                 const pct = 50 + normGamma * 40;
                 fill.style.marginLeft = Math.max(0, Math.min(100, pct)) + '%';
             }
-            // 调试输出（可选）
-            // console.log('gamma:', gamma, 'gravity.x:', engine.gravity.x);
         }
 
         // ============================================================
@@ -1118,7 +1152,6 @@
                 showScreen('game');
                 setTimeout(() => {
                     initGame(cl);
-                    // 如果是 triple 模式且已授权，直接绑定；否则等待用户点击按钮
                     if (cl === 'triple' && gyroAuthorized) {
                         initGyroscope();
                     }
@@ -1183,7 +1216,7 @@
         window.savePoster = savePoster;
         window.requestGyroPermission = requestGyroPermission;
 
-        console.log('✅ 帅照合成大作战 v2.2 - 陀螺仪修复版已加载');
+        console.log('✅ 帅照合成大作战 v2.3 - 解锁动画+高灵敏度陀螺仪');
     </script>
 </body>
 </html>
