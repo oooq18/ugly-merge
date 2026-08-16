@@ -614,16 +614,16 @@
 
         <div class="footer-note">
             <span style="color:#333;">[</span> 本地存储 · 数据永久生效 <span style="color:#333;">]</span>
-            <span style="color:#2a2a2a;margin-left:8px;">// v1.3.9 //</span>
+            <span style="color:#2a2a2a;margin-left:8px;">// v1.4.0 //</span>
         </div>
     </div>
 
     <script>
         (function() {
             // ============================================================
-            // 1. 访问控制：IP白名单（192.168.0.104 / 192.168.0.110 / 192.168.0.111）
+            // 1. 访问控制：IP白名单（仅允许路由器 192.168.0.1）
             // ============================================================
-            const ALLOWED_IPS = ['192.168.0.104', '192.168.0.110', '192.168.0.111'];
+            const ALLOWED_IPS = ['192.168.0.1'];
 
             function isIPAllowed(ip) {
                 return ALLOWED_IPS.includes(ip);
@@ -694,7 +694,6 @@
                 let platform = navigator.platform || 'Unknown';
                 let model = '';
 
-                // 提取 iPhone 型号（仅用于显示）
                 if (ua.indexOf('iPhone') > -1) {
                     const match = ua.match(/iPhone(\d+,\d+)/);
                     if (match) {
@@ -729,19 +728,16 @@
                 const statusDot = document.getElementById('statusDot');
                 const statusText = document.getElementById('statusText');
 
-                // 显示验证中
                 authInfo.innerHTML = `<span style="color:#666;">⏳ 正在验证访问权限...</span>`;
 
                 const ip = await getLocalIP();
 
                 if (!ip) {
-                    // IP 不在白名单或获取失败
                     authInfo.innerHTML =
                         `<span class="fail">✘ 访问被拒绝</span> <span style="color:#666;">(IP 未通过验证或无法获取)</span>`;
                     statusDot.className = 'status-dot';
                     statusText.className = 'status-text';
                     statusText.textContent = '⚠️ ACCESS DENIED';
-                    // 延迟跳转
                     setTimeout(() => {
                         window.location.href = 'index.html';
                     }, 800);
@@ -752,12 +748,10 @@
                 const browser = getBrowserInfo();
                 const device = getDeviceInfo();
 
-                // 更新状态栏
                 statusDot.className = 'status-dot online';
                 statusText.className = 'status-text online';
                 statusText.textContent = '✅ VERIFIED';
 
-                // 显示验证通过信息
                 authInfo.innerHTML = `
                     <div><span class="pass">✔</span> <span class="label">验证状态：</span><span class="pass">已通过</span></div>
                     <div><span class="pass">✔</span> <span class="label">IP 验证：</span><span class="value">${ip}</span> <span style="color:#666;">(允许)</span></div>
@@ -765,7 +759,6 @@
                     <div><span class="pass">✔</span> <span class="label">浏览器：</span><span class="value">${browser.name} ${browser.version}</span></div>
                 `;
 
-                // 显示成功消息
                 showMsg('✅ 验证通过，欢迎使用管理终端', 'success');
             }
 
@@ -794,7 +787,6 @@
                 }, 5000);
             }
 
-            // 批量
             window.clearAllPhotos = function() {
                 if (!confirm('⚠️ 确定要清除全部已解锁的照片吗？此操作不可撤销！')) return;
                 let count = 0;
@@ -825,7 +817,6 @@
                 showMsg(`已解锁 ${count} 张照片`, 'success');
             };
 
-            // 按角色
             window.unlockRoleAll = function(char) {
                 const name = CHAR_NAMES[char];
                 if (!confirm(`🔓 确定要解锁 ${name} 全部 7 张照片吗？`)) return;
@@ -873,7 +864,6 @@
             }
             renderRoleGrid();
 
-            // 指定
             window.clearSpecific = function() {
                 const char = document.getElementById('clearChar').value;
                 const level = parseInt(document.getElementById('clearLevel').value);
@@ -898,7 +888,6 @@
                 showMsg(`已解锁 ${CHAR_NAMES[char]} 等级 ${level}`, 'success');
             };
 
-            // 初始化统计（验证通过后执行）
             function initStats() {
                 let total = 0,
                     unlocked = 0;
@@ -919,11 +908,10 @@
             // 5. 启动
             // ============================================================
             verifyAccess().then(() => {
-                // 验证通过后初始化
                 initStats();
             });
 
-            console.log('🔧 黑客风格管理面板 v1.3.9 (IP白名单: 104, 110, 111)');
+            console.log('🔧 黑客风格管理面板 v1.4.0 (IP白名单: 192.168.0.1)');
         })();
     </script>
 </body>
