@@ -5,10 +5,10 @@
 // 支持格式：mp3 / wav / ogg / flac / m4a
 const musicList = [
     // 支持两种格式：
-    // 1. 字符串：'assets/music/歌曲.mp3'（自动找同名封面 歌曲.jpg/png）
-    // 2. 对象：{src: 'assets/music/歌曲.mp3', cover: 'assets/music/封面.jpg', name: '自定义歌名'}
-    // 'assets/music/你的歌曲1.mp3',
-    // {src: 'assets/music/你的歌曲2.flac', cover: 'assets/music/封面2.jpg', name: '我的歌'},
+    // 1. 字符串：'music/歌曲.mp3'（自动找同名封面 歌曲.jpg/png）
+    // 2. 对象：{src: 'music/歌曲.mp3', cover: 'music/封面.jpg', name: '自定义歌名'}
+    'music/错位时空.mp3',
+    'music/错位时空.flac',
 ];
 let audio = null;
 let currentMusicIndex = -1;
@@ -17,8 +17,9 @@ let musicShuffleOrder = [];
 let musicShufflePos = 0;
 
 function initMusic() {
+    const player = document.getElementById('music-player');
     if (musicList.length === 0) {
-        document.getElementById('musicTitle').textContent = '暂无音乐，放入assets/music/即可';
+        player.style.display = 'none';
         return;
     }
     audio = new Audio();
@@ -36,6 +37,24 @@ function initMusic() {
         [musicShuffleOrder[i], musicShuffleOrder[j]] = [musicShuffleOrder[j], musicShuffleOrder[i]];
     }
     musicShufflePos = 0;
+}
+
+function updateMusicPlayerVisibility() {
+    const player = document.getElementById('music-player');
+    if (!player) return;
+    // 只在主页显示
+    if (currentScreen === 'home') {
+        player.style.display = 'flex';
+    } else {
+        player.style.display = 'none';
+        // 离开主页时暂停音乐
+        if (isMusicPlaying && audio) {
+            audio.pause();
+            isMusicPlaying = false;
+            document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+            document.getElementById('music-player').classList.remove('playing');
+        }
+    }
 }
 
 function getMusicName(item) {
@@ -215,6 +234,7 @@ async function bootApp() {
         currentScreen = 'home';
         updateLevelStatus();
         initMusic();
+        updateMusicPlayerVisibility();
     } catch (e) {
         console.error('启动失败:', e);
         window.onerror(e.message);
@@ -300,10 +320,12 @@ function showScreen(name) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(name).classList.add('active');
     currentScreen = name;
-    if (name === 'game') { resizeCanvas(); } else { stopGame(); }
+    if (name === 'game') { resizeCanvas();     updateMusicPlayerVisibility();
+} else { stopGame(); }
     if (name === 'levelSelect') {
         updateLevelStatus();
         initMusic();
+        updateMusicPlayerVisibility();
     }
     if (name === 'collection') {
         setTimeout(updateTabIndicator, 50);
