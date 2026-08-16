@@ -8,7 +8,7 @@
     <script src="lib/matter.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* 原有样式保留，新增解锁动画 */
+        /* 全部样式保持不变，此处省略（与之前一致） */
         .gyro-hint {
             position: absolute;
             top: calc(env(safe-area-inset-top) + 80px);
@@ -110,8 +110,6 @@
         }
         #gyro-permission-overlay.show { display: flex; }
         #gyro-permission-overlay .btn { max-width: 200px; margin: 0 auto; }
-
-        /* 新增：解锁脉冲动画 */
         .level-card.unlock-pulse {
             animation: unlockPulse 0.8s ease-out forwards;
         }
@@ -121,11 +119,9 @@
             60% { transform: scale(0.98); border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.4); }
             100% { transform: scale(1); border-color: #222; box-shadow: none; }
         }
-        /* 卡片入场动画重触发 */
         .level-card.animate-in {
             animation: riseIn 0.5s var(--ease-out-expo) both;
         }
-
         @media (max-width: 420px) {
             .gyro-hint { font-size: 11px; padding: 6px 14px; top: calc(env(safe-area-inset-top) + 70px); }
             .tilt-indicator { font-size: 10px; padding: 4px 10px; }
@@ -219,13 +215,11 @@
         <!-- 游戏界面 -->
         <div id="game" class="screen">
             <canvas id="gameCanvas"></canvas>
-            <!-- 陀螺仪权限遮罩 -->
             <div id="gyro-permission-overlay">
                 <div>📱 需要陀螺仪权限</div>
                 <div style="font-size:14px;color:#aaa;">点击下方按钮启用</div>
                 <button class="btn btn-primary" id="request-gyro-btn" onclick="requestGyroPermission()">启用陀螺仪</button>
             </div>
-            <!-- UI 提示 -->
             <div class="gyro-hint" id="gyroHint"><span class="icon">📱</span> 倾斜设备左右晃动 <span class="gyro-dot" id="gyroDot"></span></div>
             <div class="tilt-indicator" id="tiltIndicator"><span>⚡</span><span class="tilt-bar"><span class="fill" id="tiltFill"></span></span></div>
             <div class="game-topbar">
@@ -276,7 +270,7 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- 游戏逻辑（含陀螺仪修复、灵敏度提升、解锁动画） -->
+    <!-- 游戏逻辑（超高灵敏度陀螺仪 + 死区，几乎跟随手机） -->
     <!-- ============================================================ -->
     <script>
         // ============================================================
@@ -418,12 +412,9 @@
             if (name === 'game') { resizeCanvas(); } else { stopGame(); }
             if (name === 'levelSelect') {
                 updateLevelStatus();
-                // 触发卡片入场动画（重新添加 animate-in 类）
                 document.querySelectorAll('.level-card').forEach((card, idx) => {
                     card.classList.remove('animate-in');
-                    // 强制重排
                     void card.offsetWidth;
-                    // 加延迟以错开
                     setTimeout(() => {
                         card.classList.add('animate-in');
                     }, idx * 60);
@@ -433,7 +424,7 @@
         }
 
         // ============================================================
-        // 4. 解锁状态（新增动画触发）
+        // 4. 解锁状态
         // ============================================================
         function updateLevelStatus() {
             const unlockedMa = isUnlocked('ma', 7);
@@ -442,7 +433,6 @@
             const unlockedMaPang = unlockedMa && unlockedPang;
             const unlockedAll = unlockedMa && unlockedPang && unlockedJi;
 
-            // 第三关
             const hiddenCard = document.getElementById('hiddenLevelCard');
             const hiddenDesc = document.getElementById('hiddenLevelDesc');
             const hiddenArrow = document.getElementById('hiddenArrow');
@@ -461,7 +451,6 @@
                 hiddenAvatar.style.fontSize = '28px';
             }
 
-            // 第四关
             const jiCard = document.getElementById('jiLevelCard');
             const jiDesc = document.getElementById('jiLevelDesc');
             const jiArrow = document.getElementById('jiArrow');
@@ -482,13 +471,11 @@
                 if (jiLock) jiLock.style.display = 'flex';
             }
 
-            // 第五关 - 三人混合（带解锁动画）
             const tripleCard = document.getElementById('tripleLevelCard');
             const tripleDesc = document.getElementById('tripleLevelDesc');
             const tripleArrow = document.getElementById('tripleArrow');
             const tripleImg = document.getElementById('tripleImg');
             const tripleLock = document.getElementById('tripleLockOverlay');
-
             const wasDisabled = tripleCard.classList.contains('disabled');
             if (unlockedAll) {
                 tripleCard.classList.remove('disabled');
@@ -497,12 +484,10 @@
                 if (tripleImg) { tripleImg.src = 'assets/images/ma4.jpg';
                     tripleImg.style.display = 'block'; }
                 if (tripleLock) tripleLock.style.display = 'none';
-                // 如果之前是锁定状态，触发脉冲动画
                 if (wasDisabled) {
                     tripleCard.classList.remove('unlock-pulse');
-                    void tripleCard.offsetWidth; // 强制重排
+                    void tripleCard.offsetWidth;
                     tripleCard.classList.add('unlock-pulse');
-                    // 动画结束后移除类，以便下次重新触发
                     setTimeout(() => {
                         tripleCard.classList.remove('unlock-pulse');
                     }, 900);
@@ -1079,11 +1064,12 @@
         }
 
         // ============================================================
-        // 7. 陀螺仪控制（灵敏度提升：系数 4.0，分母 20）
+        // 7. 陀螺仪控制（超灵敏度 + 死区）
         // ============================================================
         let gyroInitialized = false;
         let gyroAuthorized = false;
-        const GYRO_SENSITIVITY = 4.0;      // 重力放大倍数
+        const GYRO_SENSITIVITY = 8.0;      // 重力放大倍数（极高）
+        const GYRO_DEAD_ZONE = 2;           // 死区角度（度），小于此值重力归零
 
         function requestGyroPermission() {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission ===
@@ -1114,7 +1100,7 @@
                 window.addEventListener('deviceorientation', handleOrientation, true);
                 gyroInitialized = true;
                 document.getElementById('gyroDot').classList.remove('inactive');
-                console.log('✅ 陀螺仪监听已绑定（灵敏度提升）');
+                console.log('✅ 陀螺仪监听已绑定（超高灵敏度，死区 ' + GYRO_DEAD_ZONE + '°）');
             } else {
                 console.warn('⚠️ 设备不支持陀螺仪');
                 document.getElementById('gyroDot').classList.add('inactive');
@@ -1124,11 +1110,17 @@
         function handleOrientation(event) {
             if (!isTripleMode || !engine || gameOver) return;
             let gamma = event.gamma || 0;
-            // 归一化基准角度改为 20°，使同样倾斜产生更大重力
-            const normGamma = Math.max(-1, Math.min(1, gamma / 20));
+            // 死区处理：如果 |gamma| < GYRO_DEAD_ZONE，则视为水平
+            let normGamma = 0;
+            if (Math.abs(gamma) > GYRO_DEAD_ZONE) {
+                // 归一化到 -1 ~ 1，分母 10 表示 10° 即达到最大重力
+                normGamma = Math.max(-1, Math.min(1, gamma / 10));
+            }
+            // 应用水平重力
             engine.gravity.x = normGamma * GYRO_SENSITIVITY;
-            engine.gravity.y = 1.2;
+            engine.gravity.y = 1.2; // 垂直重力固定
 
+            // 更新指示条
             const fill = document.getElementById('tiltFill');
             if (fill) {
                 const pct = 50 + normGamma * 40;
@@ -1216,7 +1208,7 @@
         window.savePoster = savePoster;
         window.requestGyroPermission = requestGyroPermission;
 
-        console.log('✅ 帅照合成大作战 v2.3 - 解锁动画+高灵敏度陀螺仪');
+        console.log('✅ 帅照合成大作战 v2.4 - 超高灵敏度陀螺仪 + 死区');
     </script>
 </body>
 </html>
