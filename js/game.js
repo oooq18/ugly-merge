@@ -314,6 +314,15 @@ function setMusicCover(coverPath) {
 
 function playMusicAt(index) {
     if (!audio || musicList.length === 0) return;
+    // 调试
+    let dbg2 = document.getElementById('id3Debug');
+    if (!dbg2) {
+        dbg2 = document.createElement('div');
+        dbg2.id = 'id3Debug';
+        dbg2.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f0f;color:#000;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
+        document.body.appendChild(dbg2);
+    }
+    dbg2.textContent = 'playMusicAt被调用, index=' + index;
     currentMusicIndex = index;
     currentPlayingSource = 'online';
     const item = musicList[index];
@@ -324,6 +333,7 @@ function playMusicAt(index) {
     document.getElementById('musicTitle').textContent = getMusicName(item);
     audio.src = src;
     audio.play().then(() => {
+        dbg2.textContent += ' | play成功，调用parseMusicMeta';
         // 播放成功后解析ID3
         parseMusicMeta(src, function(meta) {
             if (meta) {
@@ -334,6 +344,7 @@ function playMusicAt(index) {
             renderMusicList();
         }, true); // force=true 强制重新解析
     }).catch((err) => {
+        dbg2.textContent += ' | play失败: ' + err.message;
         console.error('播放失败:', err);
         document.getElementById('musicTitle').textContent = getMusicName(item) + ' (点击播放)';
     });
