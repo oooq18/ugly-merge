@@ -111,6 +111,8 @@ function initMusic() {
         parseMusicMeta(src, function(meta) {
             if (meta) {
                 console.log('ID3结果，有封面:', !!meta.cover, '标题:', meta.title);
+                const debugEl = document.getElementById('musicDebug');
+                if (debugEl) debugEl.textContent += ' | 最终cover:' + (meta.cover ? '有' : '无');
                 if (meta.cover) setMusicCover(meta.cover);
                 const name = meta.title || getMusicNameBySrc(src);
                 document.getElementById('musicTitle').textContent = name + (meta.artist ? ' - ' + meta.artist : '');
@@ -171,8 +173,8 @@ function getMusicCover(item) {
     const base = path.replace(/\.[^/.]+$/, '');
     return base + '.jpg'; // 自动找同名jpg封面
 }
-function parseMusicMeta(src, callback) {
-    if (musicMetaCache[src]) {
+function parseMusicMeta(src, callback, force) {
+    if (musicMetaCache[src] && !force && musicMetaCache[src].cover) {
         callback(musicMetaCache[src]);
         return;
     }
