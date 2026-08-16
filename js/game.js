@@ -379,16 +379,10 @@ function showScreen(name) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(name).classList.add('active');
     currentScreen = name;
-    if (name === 'game') { resizeCanvas();     updateMusicPlayerVisibility();
-} else { stopGame(); }
-    if (name === 'levelSelect') {
-        updateLevelStatus();
-        initMusic();
-        updateMusicPlayerVisibility();
-    }
-    if (name === 'collection') {
-        setTimeout(updateTabIndicator, 50);
-    }
+    if (name === 'game') { resizeCanvas(); } else { stopGame(); }
+    if (name === 'levelSelect') { updateLevelStatus(); }
+    if (name === 'collection') { setTimeout(updateTabIndicator, 50); }
+    updateMusicPlayerVisibility();
 }
 
 // ============================================================
