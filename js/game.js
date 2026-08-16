@@ -102,33 +102,9 @@ function initMusic() {
     audio.loop = false;
     // 用事件同步播放状态，避免手动设置不同步
     audio.addEventListener('play', () => {
-        const debugMsg = 'play事件触发! src=' + currentPlaySrc + ' idx=' + currentMusicIndex;
-        document.getElementById('musicTitle').textContent = debugMsg;
-        const d0 = document.getElementById('musicDebug');
-        if (d0) d0.textContent = debugMsg;
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
-        // 播放成功后解析ID3并更新歌名
-        const src = currentPlaySrc;
-        console.log('play事件，当前src:', src);
-        if (!src) {
-            if (d0) d0.textContent += ' | src为空!';
-            return;
-        }
-        parseMusicMeta(src, function(meta) {
-            if (meta) {
-                console.log('ID3结果，有封面:', !!meta.cover, '标题:', meta.title);
-                const debugEl = document.getElementById('musicDebug');
-                if (debugEl) debugEl.textContent += ' | 最终cover:' + (meta.cover ? '有' : '无');
-                if (meta.cover) setMusicCover(meta.cover);
-                const name = meta.title || getMusicNameBySrc(src);
-                document.getElementById('musicTitle').textContent = name + (meta.artist ? ' - ' + meta.artist : '');
-            } else {
-                document.getElementById('musicTitle').textContent = getMusicNameBySrc(src);
-            }
-            renderMusicList();
-        });
     });
     audio.addEventListener('pause', () => {
         isMusicPlaying = false;
@@ -182,8 +158,6 @@ function getMusicCover(item) {
     return base + '.jpg'; // 自动找同名jpg封面
 }
 function parseMusicMeta(src, callback, force) {
-    const debugEl = document.getElementById('musicDebug');
-    if (debugEl) debugEl.textContent = 'parseMusicMeta被调用 src=' + src.substring(0,30) + ' force=' + force + ' 有缓存=' + !!musicMetaCache[src];
     if (musicMetaCache[src] && !force && musicMetaCache[src].cover) {
         callback(musicMetaCache[src]);
         return;
@@ -202,9 +176,6 @@ function parseMusicMeta(src, callback, force) {
                 const hasPic = !!(tag.tags.picture || tag.tags.image);
                 const picInfo = tag.tags.picture ? ('pic数据类型:' + typeof tag.tags.picture.data + ' 长度:' + (tag.tags.picture.data ? tag.tags.picture.data.length : '无') + ' format:' + tag.tags.picture.format) : '无picture';
                 console.log('有封面字段:', hasPic, '字段列表:', fieldNames, picInfo);
-                // 调试：把信息显示在左上角div
-                const debugEl = document.getElementById('musicDebug');
-                if (debugEl) debugEl.textContent = '字段:' + fieldNames + ' | ' + picInfo;
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
@@ -232,9 +203,7 @@ function parseMusicMeta(src, callback, force) {
                             const blob = new Blob([uint8], {type: picture.format || picture.mime || 'image/jpeg'});
                             meta.cover = URL.createObjectURL(blob);
                             console.log('封面解析成功, 大小:', uint8.length, '格式:', picture.format || picture.mime, 'URL:', meta.cover.substring(0,50));
-                            const debugEl2 = document.getElementById('musicDebug');
-                            if (debugEl2) debugEl2.textContent += ' | 封面OK! URL:' + meta.cover.substring(0,30);
-                            setTimeout(() => setMusicCover(meta.cover), 100);
+
                         } else {
                             console.log('找到picture但没有data字段:', Object.keys(picture));
                         }
@@ -249,16 +218,12 @@ function parseMusicMeta(src, callback, force) {
             },
             onError: function(error) {
                 console.error('ID3解析失败:', error);
-                const d = document.getElementById('musicDebug');
-                if (d) d.textContent += ' | onError:' + JSON.stringify(error).substring(0,50);
                 musicMetaCache[src] = {title: '', artist: '', cover: null};
                 callback(null);
             }
         });
     } catch(e) {
         console.error('parseMusicMeta异常:', e);
-        const d2 = document.getElementById('musicDebug');
-        if (d2) d2.textContent += ' | catch:' + e.message;
         musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
     }
@@ -266,8 +231,6 @@ function parseMusicMeta(src, callback, force) {
 
 function setMusicCover(coverPath) {
     const coverEl = document.querySelector('#music-player .music-cover');
-    const debugEl = document.getElementById('musicDebug');
-    if (debugEl) debugEl.textContent += ' | setCover:' + (coverPath ? coverPath.substring(0,20) : 'null');
     if (!coverEl) return;
     if (!coverPath) {
         coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
@@ -288,7 +251,17 @@ function playMusicAt(index) {
     setMusicCover(null);
     document.getElementById('musicTitle').textContent = getMusicName(item);
     audio.src = src;
-    audio.play().catch((err) => {
+    audio.play().then(() => {
+        // 播放成功后解析ID3
+        parseMusicMeta(src, function(meta) {
+            if (meta) {
+                if (meta.cover) setMusicCover(meta.cover);
+                const name = meta.title || getMusicName(item);
+                document.getElementById('musicTitle').textContent = name + (meta.artist ? ' - ' + meta.artist : '');
+            }
+            renderMusicList();
+        }, true); // force=true 强制重新解析
+    }).catch((err) => {
         console.error('播放失败:', err);
         document.getElementById('musicTitle').textContent = getMusicName(item) + ' (点击播放)';
     });
@@ -426,7 +399,15 @@ function playLocalMusicAt(index) {
     setMusicCover(null);
     document.getElementById('musicTitle').textContent = song.name.replace(/\.[^/.]+$/, '');
     audio.src = song.url;
-    audio.play().catch((err) => {
+    audio.play().then(() => {
+        parseMusicMeta(song.url, function(meta) {
+            if (meta) {
+                if (meta.cover) setMusicCover(meta.cover);
+                if (meta.title) document.getElementById('musicTitle').textContent = meta.title + (meta.artist ? ' - ' + meta.artist : '');
+            }
+            renderMusicList();
+        }, true);
+    }).catch((err) => {
         console.error('本地音乐播放失败:', err);
     });
 }
