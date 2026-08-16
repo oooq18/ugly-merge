@@ -128,178 +128,165 @@
                 transform: rotate(360deg);
             }
         }
-        /* ===== 动画关键帧 ===== */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* ===== 高级感动画关键帧 ===== */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.7); }
-            to { opacity: 1; transform: scale(1); }
+        @keyframes blurIn {
+            from { opacity: 0; filter: blur(12px); transform: translateY(8px); }
+            to { opacity: 1; filter: blur(0); transform: translateY(0); }
         }
-        @keyframes scaleInElastic {
-            0% { opacity: 0; transform: scale(0.3); }
-            60% { opacity: 1; transform: scale(1.08); }
-            100% { opacity: 1; transform: scale(1); }
+        @keyframes blurInScale {
+            from { opacity: 0; filter: blur(8px); transform: scale(0.96); }
+            to { opacity: 1; filter: blur(0); transform: scale(1); }
         }
-        @keyframes slideFromLeft {
-            from { opacity: 0; transform: translateX(-40px); }
-            to { opacity: 1; transform: translateX(0); }
+        @keyframes slideFadeLeft {
+            from { opacity: 0; transform: translateX(-24px); filter: blur(4px); }
+            to { opacity: 1; transform: translateX(0); filter: blur(0); }
         }
-        @keyframes slideFromRight {
-            from { opacity: 0; transform: translateX(40px); }
-            to { opacity: 1; transform: translateX(0); }
+        @keyframes slideFadeRight {
+            from { opacity: 0; transform: translateX(24px); filter: blur(4px); }
+            to { opacity: 1; transform: translateX(0); filter: blur(0); }
         }
-        @keyframes flipIn {
-            from { opacity: 0; transform: perspective(600px) rotateY(90deg); }
-            to { opacity: 1; transform: perspective(600px) rotateY(0); }
-        }
-        @keyframes dropIn {
-            0% { opacity: 0; transform: translateY(-60px) scale(0.9); }
-            60% { opacity: 1; transform: translateY(8px) scale(1.02); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes shakeIn {
-            0% { opacity: 0; transform: translateX(-10px); }
-            25% { transform: translateX(8px); }
-            50% { transform: translateX(-6px); }
-            75% { transform: translateX(4px); }
-            100% { opacity: 1; transform: translateX(0); }
+        @keyframes riseIn {
+            from { opacity: 0; transform: translateY(16px); filter: blur(6px); }
+            to { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
         @keyframes floatY {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-6px); }
+            50% { transform: translateY(-5px); }
         }
         @keyframes gradientShift {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-        @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.1); }
-            50% { box-shadow: 0 0 24px 4px rgba(255,255,255,0.15); }
+        @keyframes subtleGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.06); }
+            50% { box-shadow: 0 0 20px 2px rgba(255,255,255,0.1); }
         }
         @keyframes scorePop {
             0% { transform: scale(1); }
-            50% { transform: scale(1.3); color: #fff; }
+            40% { transform: scale(1.18); color: #fff; }
             100% { transform: scale(1); }
         }
         @keyframes shimmer {
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
         }
-        @keyframes transitionWipe {
+        @keyframes wipeDown {
             from { transform: scaleY(0); transform-origin: top; }
             to { transform: scaleY(1); transform-origin: top; }
         }
-        @keyframes transitionWipeOut {
+        @keyframes wipeUp {
             from { transform: scaleY(1); transform-origin: bottom; }
             to { transform: scaleY(0); transform-origin: bottom; }
         }
-        @keyframes rotateZoomIn {
-            from { opacity: 0; transform: scale(0.3) rotate(-180deg); }
-            to { opacity: 1; transform: scale(1) rotate(0deg); }
+        @keyframes previewOpen {
+            from { opacity: 0; transform: scale(0.6) rotate(-8deg); filter: blur(10px); }
+            to { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0); }
         }
-        @keyframes rotateZoomOut {
-            from { opacity: 1; transform: scale(1) rotate(0deg); }
-            to { opacity: 0; transform: scale(0.3) rotate(180deg); }
+        @keyframes previewClose {
+            from { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0); }
+            to { opacity: 0; transform: scale(0.6) rotate(8deg); filter: blur(10px); }
+        }
+        :root {
+            --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+            --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
         }
         .screen.active {
-            animation: fadeIn 0.4s ease-out;
+            animation: fadeIn 0.5s var(--ease-out-expo);
         }
-        /* 主界面：标题缩放弹入，按钮从两侧滑入 */
         .screen.active .game-title {
-            animation: scaleInElastic 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            animation: blurInScale 0.8s var(--ease-out-expo) both;
         }
         .screen.active .game-subtitle {
-            animation: fadeIn 0.5s ease-out 0.15s both;
+            animation: riseIn 0.6s var(--ease-out-expo) 0.15s both;
         }
         .screen.active .home-buttons .btn:first-child {
-            animation: slideFromLeft 0.5s ease-out 0.25s both;
+            animation: slideFadeLeft 0.6s var(--ease-out-expo) 0.25s both;
         }
         .screen.active .home-buttons .btn:last-child {
-            animation: slideFromRight 0.5s ease-out 0.35s both;
+            animation: slideFadeRight 0.6s var(--ease-out-expo) 0.35s both;
         }
         .game-title {
             background-size: 200% 200%;
-            animation: gradientShift 4s ease infinite;
+            animation: gradientShift 6s ease infinite;
         }
-        /* 关卡选择：卡片翻转进入，错开 */
-        .level-card {
-            animation: flipIn 0.5s ease-out both;
-            transform-origin: left center;
-        }
-        .level-card:nth-child(1) { animation-delay: 0.05s; }
-        .level-card:nth-child(2) { animation-delay: 0.15s; }
-        .level-card:nth-child(3) { animation-delay: 0.25s; }
-        .level-card:nth-child(4) { animation-delay: 0.35s; }
         .screen.active .section-title {
-            animation: slideFromLeft 0.4s ease-out both;
+            animation: slideFadeLeft 0.5s var(--ease-out-expo) both;
         }
+        .level-card {
+            animation: riseIn 0.5s var(--ease-out-expo) both;
+            transition: transform 0.3s var(--ease-out-quart), box-shadow 0.3s var(--ease-out-quart), border-color 0.3s;
+        }
+        .level-card:nth-child(1) { animation-delay: 0.08s; }
+        .level-card:nth-child(2) { animation-delay: 0.16s; }
+        .level-card:nth-child(3) { animation-delay: 0.24s; }
+        .level-card:nth-child(4) { animation-delay: 0.32s; }
         .level-card:hover:not(.disabled) {
-            transform: translateY(-2px) scale(1.01);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            border-color: #444;
-        }
-        /* 图鉴：卡片缩放弹入，错开 */
-        .collection-item {
-            animation: scaleInElastic 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-        }
-        .collection-item:nth-child(1) { animation-delay: 0.03s; }
-        .collection-item:nth-child(2) { animation-delay: 0.08s; }
-        .collection-item:nth-child(3) { animation-delay: 0.13s; }
-        .collection-item:nth-child(4) { animation-delay: 0.18s; }
-        .collection-item:nth-child(5) { animation-delay: 0.23s; }
-        .collection-item:nth-child(6) { animation-delay: 0.28s; }
-        .collection-item:nth-child(7) { animation-delay: 0.33s; }
-        .collection-item:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.35);
             border-color: #3a3a3a;
         }
+        .collection-item {
+            animation: blurIn 0.5s var(--ease-out-expo) both;
+            transition: transform 0.3s var(--ease-out-quart), box-shadow 0.3s var(--ease-out-quart), border-color 0.3s;
+        }
+        .collection-item:nth-child(1) { animation-delay: 0.04s; }
+        .collection-item:nth-child(2) { animation-delay: 0.09s; }
+        .collection-item:nth-child(3) { animation-delay: 0.14s; }
+        .collection-item:nth-child(4) { animation-delay: 0.19s; }
+        .collection-item:nth-child(5) { animation-delay: 0.24s; }
+        .collection-item:nth-child(6) { animation-delay: 0.29s; }
+        .collection-item:nth-child(7) { animation-delay: 0.34s; }
+        .collection-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+            border-color: #333;
+        }
         .collection-photo {
-            transition: transform 0.3s ease;
+            transition: transform 0.35s var(--ease-out-quart);
             cursor: pointer;
         }
         .collection-item:hover .collection-photo:not(.locked) {
-            transform: scale(1.05);
+            transform: scale(1.04);
         }
-        /* 胜利界面：从上方掉落 */
         .game-overlay.show {
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.35s var(--ease-out-expo);
         }
         #winOverlay.show .overlay-title {
-            animation: dropIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+            animation: blurInScale 0.7s var(--ease-out-expo) 0.1s both;
         }
         #winOverlay.show .final-photo {
-            animation: scaleInElastic 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both;
+            animation: blurInScale 0.8s var(--ease-out-expo) 0.2s both;
         }
         #winOverlay.show .overlay-score {
-            animation: slideFromLeft 0.4s ease-out 0.45s both;
+            animation: slideFadeLeft 0.5s var(--ease-out-expo) 0.4s both;
         }
         #winOverlay.show .overlay-buttons {
-            animation: slideFromRight 0.4s ease-out 0.55s both;
+            animation: slideFadeRight 0.5s var(--ease-out-expo) 0.5s both;
         }
-        /* 失败界面：抖动进入 */
         #loseOverlay.show .overlay-title {
-            animation: shakeIn 0.5s ease-out 0.1s both;
+            animation: riseIn 0.5s var(--ease-out-expo) 0.1s both;
         }
         #loseOverlay.show .overlay-score {
-            animation: dropIn 0.4s ease-out 0.25s both;
+            animation: blurInScale 0.6s var(--ease-out-expo) 0.25s both;
         }
         #loseOverlay.show .overlay-buttons {
-            animation: fadeInUp 0.4s ease-out 0.4s both;
+            animation: riseIn 0.5s var(--ease-out-expo) 0.4s both;
         }
         .final-photo {
-            animation: pulseGlow 2s ease-in-out infinite;
+            animation: subtleGlow 3s ease-in-out infinite;
         }
         .btn {
             position: relative;
             overflow: hidden;
+            transition: transform 0.2s var(--ease-out-quart), box-shadow 0.2s var(--ease-out-quart), background 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
         }
         .btn::after {
             content: '';
@@ -307,39 +294,53 @@
             top: 50%; left: 50%;
             width: 0; height: 0;
             border-radius: 50%;
-            background: rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.12);
             transform: translate(-50%, -50%);
-            transition: width 0.4s, height 0.4s;
+            transition: width 0.5s var(--ease-out-quart), height 0.5s var(--ease-out-quart);
         }
         .btn:active::after {
             width: 300px; height: 300px;
             transition: 0s;
         }
         .score-value.pop {
-            animation: scorePop 0.3s ease-out;
+            animation: scorePop 0.35s var(--ease-out-quart);
         }
         .loading-bar {
-            background: linear-gradient(90deg, #444, #fff, #444);
+            background: linear-gradient(90deg, #333, #fff, #333);
             background-size: 200% 100%;
-            animation: shimmer 1.5s linear infinite;
+            animation: shimmer 2s linear infinite;
+        }
+        .tabs {
+            position: relative;
+        }
+        .tab-indicator {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            background: #fff;
+            border-radius: 8px;
+            transition: left 0.4s var(--ease-out-expo), width 0.4s var(--ease-out-expo);
+            z-index: 0;
+            box-shadow: 0 2px 8px rgba(255,255,255,0.2);
         }
         .tab {
             position: relative;
-            transition: all 0.25s ease;
+            z-index: 1;
+            transition: color 0.3s var(--ease-out-quart);
         }
         .tab.active {
-            box-shadow: 0 2px 8px rgba(255,255,255,0.15);
+            color: #000 !important;
+            box-shadow: none;
         }
         .icon-btn {
-            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: transform 0.25s var(--ease-out-quart), background 0.2s;
         }
         .icon-btn:hover {
-            transform: scale(1.1);
+            transform: scale(1.08);
         }
         .next-ball {
-            animation: floatY 2s ease-in-out infinite;
+            animation: floatY 2.5s ease-in-out infinite;
         }
-        /* 关卡过渡遮罩 */
         #transition-overlay {
             position: fixed;
             inset: 0;
@@ -350,14 +351,13 @@
             pointer-events: none;
         }
         #transition-overlay.wipe-in {
-            animation: transitionWipe 0.35s ease-in forwards;
+            animation: wipeDown 0.4s var(--ease-out-expo) forwards;
             pointer-events: all;
         }
         #transition-overlay.wipe-out {
-            animation: transitionWipeOut 0.35s ease-out forwards;
+            animation: wipeUp 0.4s var(--ease-out-expo) forwards;
             pointer-events: all;
         }
-        /* 图鉴图片预览 */
         #photo-preview {
             position: fixed;
             inset: 0;
@@ -365,25 +365,25 @@
             display: none;
             align-items: center;
             justify-content: center;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
         }
         #photo-preview.show {
             display: flex;
-            animation: fadeIn 0.25s ease-out;
+            animation: fadeIn 0.3s var(--ease-out-expo);
         }
         #photo-preview .preview-img-wrap {
-            width: min(80vw, 360px);
-            height: min(80vw, 360px);
+            width: min(78vw, 340px);
+            height: min(78vw, 340px);
             border-radius: 50%;
             overflow: hidden;
-            border: 3px solid rgba(255,255,255,0.2);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            animation: rotateZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 2px solid rgba(255,255,255,0.15);
+            box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+            animation: previewOpen 0.55s var(--ease-out-expo);
         }
         #photo-preview.closing .preview-img-wrap {
-            animation: rotateZoomOut 0.4s ease-in forwards;
+            animation: previewClose 0.4s var(--ease-out-expo) forwards;
         }
         #photo-preview .preview-img-wrap img {
             width: 100%;
@@ -397,15 +397,20 @@
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
             color: #fff;
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(10px);
+            transition: background 0.2s, transform 0.2s var(--ease-out-quart);
+        }
+        #photo-preview .preview-close:hover {
+            background: rgba(255,255,255,0.15);
+            transform: scale(1.08);
         }
         #photo-preview .preview-info {
             position: absolute;
@@ -414,17 +419,19 @@
             right: 0;
             text-align: center;
             color: #fff;
+            animation: riseIn 0.5s var(--ease-out-expo) 0.2s both;
         }
         #photo-preview .preview-name {
             font-size: 20px;
             font-weight: 700;
             margin-bottom: 4px;
+            letter-spacing: 0.5px;
         }
         #photo-preview .preview-level {
-            font-size: 14px;
-            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 1px;
         }
-
         /* ===== 主界面 ===== */
         #home {
             justify-content: center;
@@ -1007,6 +1014,7 @@
                 <div class="collection-title">图鉴</div>
             </div>
             <div class="tabs">
+                <div class="tab-indicator" id="tabIndicator"></div>
                 <div class="tab active" data-tab="ma" onclick="switchTab('ma')">老马</div>
                 <div class="tab" data-tab="pang" onclick="switchTab('pang')">老胖</div>
                 <div class="tab" data-tab="ji" onclick="switchTab('ji')">鸡</div>
@@ -1170,6 +1178,9 @@
             if (name === 'levelSelect') {
                 updateLevelStatus();
             }
+            if (name === 'collection') {
+                setTimeout(updateTabIndicator, 50);
+            }
         }
 
         // ============================================================
@@ -1236,7 +1247,18 @@
             document.querySelectorAll('.tab').forEach(t => {
                 t.classList.toggle('active', t.dataset.tab === tab);
             });
+            updateTabIndicator();
             renderCollection();
+        }
+        function updateTabIndicator() {
+            const indicator = document.getElementById('tabIndicator');
+            const activeTab = document.querySelector('.tab.active');
+            const tabsContainer = document.querySelector('.tabs');
+            if (!indicator || !activeTab || !tabsContainer) return;
+            const containerRect = tabsContainer.getBoundingClientRect();
+            const tabRect = activeTab.getBoundingClientRect();
+            indicator.style.left = (tabRect.left - containerRect.left) + 'px';
+            indicator.style.width = tabRect.width + 'px';
         }
 
         function renderCollection() {
@@ -1498,7 +1520,21 @@
                     const midY = (a.position.y + b.position.y) / 2;
                     const newLevel = a.gameLevel + 1;
                     const character = a.character;
-                    mergeFlashes.push({ x: midX, y: midY, r: BALL_RADII[newLevel - 1], life: 1, level: newLevel });
+                    const flashR = BALL_RADII[newLevel - 1];
+                    const particles = [];
+                    const pCount = 8 + Math.floor(newLevel * 1.5);
+                    for (let pi = 0; pi < pCount; pi++) {
+                        const angle = (Math.PI * 2 / pCount) * pi + Math.random() * 0.3;
+                        const speed = 1.5 + Math.random() * 2.5 + newLevel * 0.3;
+                        particles.push({
+                            x: midX, y: midY,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed - 1,
+                            r: 2 + Math.random() * 3 + newLevel * 0.3,
+                            life: 1
+                        });
+                    }
+                    mergeFlashes.push({ x: midX, y: midY, r: flashR, life: 1, level: newLevel, particles: particles });
                     setTimeout(() => {
                         World.remove(world, a);
                         World.remove(world, b);
@@ -1580,28 +1616,55 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // 合成闪光
+            // 合成特效：粒子爆发 + 光环 + 中心闪光
             for (let i = mergeFlashes.length - 1; i >= 0; i--) {
                 const f = mergeFlashes[i];
-                const expandR = f.r + (1 - f.life) * f.r * 1.5;
+                const t = 1 - f.life; // 0→1
                 ctx.save();
-                ctx.globalAlpha = f.life * 0.6;
-                const grad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, expandR);
-                grad.addColorStop(0, 'rgba(255,255,255,0.9)');
-                grad.addColorStop(0.4, 'rgba(255,255,255,0.3)');
-                grad.addColorStop(1, 'rgba(255,255,255,0)');
-                ctx.fillStyle = grad;
+                // 中心闪光
+                const coreR = f.r * (0.5 + t * 0.8);
+                ctx.globalAlpha = f.life * 0.7;
+                const coreGrad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, coreR);
+                coreGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+                coreGrad.addColorStop(0.3, 'rgba(255,255,255,0.4)');
+                coreGrad.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = coreGrad;
                 ctx.beginPath();
-                ctx.arc(f.x, f.y, expandR, 0, Math.PI * 2);
+                ctx.arc(f.x, f.y, coreR, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.globalAlpha = f.life;
-                ctx.strokeStyle = 'rgba(255,255,255,' + (f.life * 0.5) + ')';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(f.x, f.y, expandR * 0.8, 0, Math.PI * 2);
-                ctx.stroke();
+                // 扩散光环（两层）
+                for (let ring = 0; ring < 2; ring++) {
+                    const ringT = Math.min(1, t * 1.5 - ring * 0.2);
+                    if (ringT <= 0) continue;
+                    const ringR = f.r * (0.6 + ringT * 1.8);
+                    ctx.globalAlpha = (1 - ringT) * f.life * 0.6;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                    ctx.lineWidth = 1.5 * (1 - ringT) + 0.5;
+                    ctx.beginPath();
+                    ctx.arc(f.x, f.y, ringR, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                // 粒子
+                if (f.particles) {
+                    for (const p of f.particles) {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.08; // 轻微重力
+                        p.vx *= 0.98;
+                        p.life -= 0.035;
+                        if (p.life <= 0) continue;
+                        ctx.globalAlpha = p.life * f.life;
+                        const pGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+                        pGrad.addColorStop(0, 'rgba(255,255,255,0.9)');
+                        pGrad.addColorStop(1, 'rgba(255,255,255,0)');
+                        ctx.fillStyle = pGrad;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
                 ctx.restore();
-                f.life -= 0.04;
+                f.life -= 0.028;
                 if (f.life <= 0) mergeFlashes.splice(i, 1);
             }
 
