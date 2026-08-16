@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>帅照合成 · 存档管理后台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: #0a0a0a;
+            color: #f0f0f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 480px;
+            width: 100%;
+            background: rgba(18, 18, 28, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 24px;
+            padding: 28px 22px 32px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header .icon {
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 13px;
+            letter-spacing: 0.8px;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #555;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title span {
+            font-size: 16px;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-row .cheat-select {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+            text-align: center;
+            letter-spacing: 0.3px;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            flex: 1;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn.danger {
+            background: rgba(245, 90, 60, 0.2);
+            border-color: rgba(245, 90, 60, 0.25);
+            color: #f55a3c;
+        }
+        .btn.danger:hover {
+            background: rgba(245, 90, 60, 0.3);
+        }
+
+        .btn.success {
+            background: rgba(80, 200, 120, 0.15);
+            border-color: rgba(80, 200, 120, 0.2);
+            color: #50c878;
+        }
+        .btn.success:hover {
+            background: rgba(80, 200, 120, 0.25);
+        }
+
+        .btn.primary {
+            background: rgba(100, 150, 255, 0.12);
+            border-color: rgba(100, 150, 255, 0.15);
+            color: #8ab4ff;
+        }
+        .btn.primary:hover {
+            background: rgba(100, 150, 255, 0.2);
+        }
+
+        .btn.full {
+            flex: none;
+            width: 100%;
+        }
+
+        .cheat-select {
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: #eee;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .cheat-select:focus {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .cheat-select option {
+            background: #1a1a2a;
+            color: #eee;
+        }
+
+        .msg-box {
+            margin-top: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 14px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            transition: all 0.3s ease;
+            word-break: break-word;
+        }
+
+        .msg-box.success {
+            color: #50c878;
+            border-color: rgba(80, 200, 120, 0.15);
+            background: rgba(80, 200, 120, 0.05);
+        }
+
+        .msg-box.error {
+            color: #f55a3c;
+            border-color: rgba(245, 90, 60, 0.15);
+            background: rgba(245, 90, 60, 0.05);
+        }
+
+        .msg-box.info {
+            color: #8ab4ff;
+            border-color: rgba(100, 150, 255, 0.12);
+            background: rgba(100, 150, 255, 0.04);
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #444;
+            text-align: center;
+            letter-spacing: 0.3px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            padding-top: 16px;
+        }
+
+        .footer-note code {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #777;
+            font-size: 11px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 420px) {
+            .container {
+                padding: 20px 16px 24px;
+                border-radius: 20px;
+            }
+            .header h1 {
+                font-size: 20px;
+            }
+            .btn {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+            .cheat-select {
+                font-size: 13px;
+                padding: 8px 10px;
+                padding-right: 32px;
+            }
+            .btn-row {
+                gap: 6px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .btn-row {
+                flex-direction: column;
+            }
+            .btn-row .cheat-select {
+                min-width: unset;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <span class="icon">🔧</span>
+            <h1>存档管理后台</h1>
+        </div>
+        <div class="subtitle">帅照合成大作战 · 本地数据管理</div>
+
+        <!-- 批量操作 -->
+        <div class="section">
+            <div class="section-title"><span>📦</span> 批量操作</div>
+            <div class="btn-group">
+                <button class="btn danger full" onclick="clearAllPhotos()">🗑️ 清除全部照片解锁</button>
+                <button class="btn success full" onclick="unlockAllPhotos()">🔓 一键解锁全部照片</button>
+            </div>
+        </div>
+
+        <!-- 指定操作 -->
+        <div class="section">
+            <div class="section-title"><span>🎯</span> 指定操作</div>
+
+            <!-- 清除指定 -->
+            <div style="margin-bottom: 12px;">
+                <div style="font-size:12px; color:#666; margin-bottom:6px; padding-left:2px;">清除指定照片</div>
+                <div class="btn-row">
+                    <select class="cheat-select" id="clearChar">
+                        <option value="ma">老马</option>
+                        <option value="pang">老胖</option>
+                        <option value="ji">鸡</option>
+                    </select>
+                    <select class="cheat-select" id="clearLevel">
+                        <option value="1">等级 1</option>
+                        <option value="2">等级 2</option>
+                        <option value="3">等级 3</option>
+                        <option value="4">等级 4</option>
+                        <option value="5">等级 5</option>
+                        <option value="6">等级 6</option>
+                        <option value="7">等级 7</option>
+                    </select>
+                    <button class="btn danger" onclick="clearSpecific()">清除</button>
+                </div>
+            </div>
+
+            <!-- 解锁指定 -->
+            <div>
+                <div style="font-size:12px; color:#666; margin-bottom:6px; padding-left:2px;">解锁指定照片</div>
+                <div class="btn-row">
+                    <select class="cheat-select" id="unlockChar">
+                        <option value="ma">老马</option>
+                        <option value="pang">老胖</option>
+                        <option value="ji">鸡</option>
+                    </select>
+                    <select class="cheat-select" id="unlockLevel">
+                        <option value="1">等级 1</option>
+                        <option value="2">等级 2</option>
+                        <option value="3">等级 3</option>
+                        <option value="4">等级 4</option>
+                        <option value="5">等级 5</option>
+                        <option value="6">等级 6</option>
+                        <option value="7">等级 7</option>
+                    </select>
+                    <button class="btn success" onclick="unlockSpecific()">解锁</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 消息框 -->
+        <div class="msg-box" id="msgBox">💡 准备就绪，选择操作即可管理存档</div>
+
+        <div class="footer-note">
+            ⚡ 直接操作浏览器本地存储 (localStorage) · 数据与游戏互通
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ---------- 工具 ----------
+            const CHARS = ['ma', 'pang', 'ji'];
+            const CHAR_NAMES = { ma: '老马', pang: '老胖', ji: '鸡' };
+
+            function getKey(char, level) {
+                return 'unlocked_' + char + '_' + level;
+            }
+
+            function showMsg(text, type) {
+                const el = document.getElementById('msgBox');
+                el.textContent = text;
+                el.className = 'msg-box ' + (type || '');
+                // 自动恢复（但保留样式，不清除文字）
+                clearTimeout(el._timer);
+                el._timer = setTimeout(() => {
+                    if (el.textContent === text) {
+                        // 不强制恢复，让用户看到最后结果
+                    }
+                }, 5000);
+            }
+
+            // ---------- 批量操作 ----------
+            window.clearAllPhotos = function() {
+                if (!confirm('⚠️ 确定要清除全部已解锁的照片吗？此操作不可撤销！')) return;
+                let count = 0;
+                for (const c of CHARS) {
+                    for (let l = 1; l <= 7; l++) {
+                        const key = getKey(c, l);
+                        if (localStorage.getItem(key) === '1') {
+                            localStorage.removeItem(key);
+                            count++;
+                        }
+                    }
+                }
+                showMsg(`✅ 已清除 ${count} 张照片的解锁记录`, 'success');
+            };
+
+            window.unlockAllPhotos = function() {
+                if (!confirm('🔓 确定要解锁全部照片吗？')) return;
+                let count = 0;
+                for (const c of CHARS) {
+                    for (let l = 1; l <= 7; l++) {
+                        const key = getKey(c, l);
+                        if (localStorage.getItem(key) !== '1') {
+                            localStorage.setItem(key, '1');
+                            count++;
+                        }
+                    }
+                }
+                showMsg(`✅ 已解锁 ${count} 张照片`, 'success');
+            };
+
+            // ---------- 指定清除 ----------
+            window.clearSpecific = function() {
+                const char = document.getElementById('clearChar').value;
+                const level = parseInt(document.getElementById('clearLevel').value);
+                const key = getKey(char, level);
+
+                if (localStorage.getItem(key) !== '1') {
+                    showMsg(`ℹ️ ${CHAR_NAMES[char]} 等级 ${level} 尚未解锁，无需清除`, 'info');
+                    return;
+                }
+                localStorage.removeItem(key);
+                showMsg(`✅ 已清除 ${CHAR_NAMES[char]} 等级 ${level} 的解锁`, 'success');
+            };
+
+            // ---------- 指定解锁 ----------
+            window.unlockSpecific = function() {
+                const char = document.getElementById('unlockChar').value;
+                const level = parseInt(document.getElementById('unlockLevel').value);
+                const key = getKey(char, level);
+
+                if (localStorage.getItem(key) === '1') {
+                    showMsg(`ℹ️ ${CHAR_NAMES[char]} 等级 ${level} 已解锁`, 'info');
+                    return;
+                }
+                localStorage.setItem(key, '1');
+                showMsg(`✅ 已解锁 ${CHAR_NAMES[char]} 等级 ${level}`, 'success');
+            };
+
+            // 页面加载时检测是否有数据
+            window.addEventListener('DOMContentLoaded', function() {
+                let total = 0;
+                let unlocked = 0;
+                for (const c of CHARS) {
+                    for (let l = 1; l <= 7; l++) {
+                        total++;
+                        if (localStorage.getItem(getKey(c, l)) === '1') unlocked++;
+                    }
+                }
+                if (unlocked > 0) {
+                    showMsg(`📊 当前存档：共 ${total} 张照片，已解锁 ${unlocked} 张`, 'info');
+                } else {
+                    showMsg('💡 当前存档为空，可执行“一键解锁全部照片”', 'info');
+                }
+            });
+
+            console.log('🔧 独立存档管理面板已启动');
+            console.log('  数据存储于 localStorage，键名格式: unlocked_{char}_{level}');
+        })();
+    </script>
+</body>
+</html>
