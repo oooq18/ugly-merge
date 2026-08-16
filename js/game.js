@@ -30,6 +30,18 @@ function initMusic() {
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
+        // 播放成功后解析ID3并更新歌名
+        const src = audio.src;
+        parseMusicMeta(src, function(meta) {
+            if (meta) {
+                if (meta.cover) setMusicCover(meta.cover);
+                const name = meta.title || getMusicNameBySrc(src);
+                document.getElementById('musicTitle').textContent = name + (meta.artist ? ' - ' + meta.artist : '');
+            } else {
+                document.getElementById('musicTitle').textContent = getMusicNameBySrc(src);
+            }
+            renderMusicList();
+        });
     });
     audio.addEventListener('pause', () => {
         isMusicPlaying = false;
@@ -56,23 +68,22 @@ function initMusic() {
 function updateMusicPlayerVisibility() {
     const player = document.getElementById('music-player');
     if (!player) return;
-    // 只在主页显示
+    // 只在主页显示播放器，但音乐在所有页面都继续播放
     if (currentScreen === 'home') {
         player.style.display = 'flex';
     } else {
         player.style.display = 'none';
-        // 离开主页时暂停音乐（状态由pause事件同步）
-        if (isMusicPlaying && audio) {
-            audio.pause();
-        }
     }
 }
 
 function getMusicName(item) {
     if (typeof item === 'object' && item.name) return item.name;
     const path = typeof item === 'string' ? item : item.src;
-    const filename = path.split('/').pop();
-    return filename.replace(/\.[^/.]+$/, '');
+    return getMusicNameBySrc(path);
+}
+function getMusicNameBySrc(src) {
+    const filename = src.split('/').pop();
+    return decodeURIComponent(filename.replace(/\.[^/.]+$/, ''));
 }
 function getMusicSrc(item) {
     return typeof item === 'string' ? item : item.src;
@@ -105,13 +116,28 @@ function parseMusicMeta(src, callback) {
                 // 兼容MP3(ID3)和FLAC(Vorbis)的封面字段
                 let picture = tag.tags.picture;
                 if (!picture && tag.tags.image) picture = tag.tags.image;
-                if (picture && picture.data) {
+                // FLAC的metadataBlock可能有不同结构
+                if (!picture && tag.tags.metadataBlock) {
+                    for (let i = 0; i < tag.tags.metadataBlock.length; i++) {
+                        if (tag.tags.metadataBlock[i].picture) {
+                            picture = tag.tags.metadataBlock[i].picture;
+                            break;
+                        }
+                    }
+                }
+                if (picture) {
                     try {
-                        const dataArr = Array.isArray(picture.data) ? picture.data : Array.from(picture.data);
-                        const uint8 = new Uint8Array(dataArr);
-                        const blob = new Blob([uint8], {type: picture.format || 'image/jpeg'});
-                        meta.cover = URL.createObjectURL(blob);
-                        console.log('封面解析成功, 大小:', uint8.length, '格式:', picture.format);
+                        let picData = picture.data;
+                        if (!picData && picture.image) picData = picture.image.data;
+                        if (picData) {
+                            const dataArr = Array.isArray(picData) ? picData : Array.from(picData);
+                            const uint8 = new Uint8Array(dataArr);
+                            const blob = new Blob([uint8], {type: picture.format || picture.mime || 'image/jpeg'});
+                            meta.cover = URL.createObjectURL(blob);
+                            console.log('封面解析成功, 大小:', uint8.length, '格式:', picture.format || picture.mime);
+                        } else {
+                            console.log('找到picture但没有data字段:', Object.keys(picture));
+                        }
                     } catch(e) {
                         console.error('封面转换失败:', e);
                     }
@@ -159,25 +185,12 @@ function playMusicAt(index) {
     const src = getMusicSrc(item);
     console.log('开始播放:', src);
     setMusicCover(getMusicCover(item));
-    document.getElementById('musicTitle').textContent = getMusicName(item) + ' (加载中...)';
+    document.getElementById('musicTitle').textContent = getMusicName(item);
     audio.src = src;
-    audio.load();
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-        playPromise.then(() => {
-            console.log('播放成功');
-            parseMusicMeta(src, function(meta) {
-                if (meta) {
-                    if (meta.cover) setMusicCover(meta.cover);
-                    if (meta.title) document.getElementById('musicTitle').textContent = meta.title + (meta.artist ? ' - ' + meta.artist : '');
-                }
-                renderMusicList();
-            });
-        }).catch((err) => {
-            console.error('播放失败:', err, 'audio.error:', audio.error);
-            document.getElementById('musicTitle').textContent = getMusicName(item) + ' (点击重试)';
-        });
-    }
+    audio.play().catch((err) => {
+        console.error('播放失败:', err);
+        document.getElementById('musicTitle').textContent = getMusicName(item) + ' (点击播放)';
+    });
 }
 
 function toggleMusic() {
