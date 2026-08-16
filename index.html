@@ -138,8 +138,37 @@
             to { opacity: 1; }
         }
         @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.85); }
+            from { opacity: 0; transform: scale(0.7); }
             to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes scaleInElastic {
+            0% { opacity: 0; transform: scale(0.3); }
+            60% { opacity: 1; transform: scale(1.08); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideFromLeft {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideFromRight {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes flipIn {
+            from { opacity: 0; transform: perspective(600px) rotateY(90deg); }
+            to { opacity: 1; transform: perspective(600px) rotateY(0); }
+        }
+        @keyframes dropIn {
+            0% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+            60% { opacity: 1; transform: translateY(8px) scale(1.02); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes shakeIn {
+            0% { opacity: 0; transform: translateX(-10px); }
+            25% { transform: translateX(8px); }
+            50% { transform: translateX(-6px); }
+            75% { transform: translateX(4px); }
+            100% { opacity: 1; transform: translateX(0); }
         }
         @keyframes floatY {
             0%, 100% { transform: translateY(0); }
@@ -163,34 +192,62 @@
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
         }
+        @keyframes transitionWipe {
+            from { transform: scaleY(0); transform-origin: top; }
+            to { transform: scaleY(1); transform-origin: top; }
+        }
+        @keyframes transitionWipeOut {
+            from { transform: scaleY(1); transform-origin: bottom; }
+            to { transform: scaleY(0); transform-origin: bottom; }
+        }
+        @keyframes rotateZoomIn {
+            from { opacity: 0; transform: scale(0.3) rotate(-180deg); }
+            to { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        @keyframes rotateZoomOut {
+            from { opacity: 1; transform: scale(1) rotate(0deg); }
+            to { opacity: 0; transform: scale(0.3) rotate(180deg); }
+        }
         .screen.active {
-            animation: fadeIn 0.35s ease-out;
+            animation: fadeIn 0.4s ease-out;
         }
-        .screen.active .game-title,
-        .screen.active .game-subtitle,
-        .screen.active .home-buttons {
-            animation: fadeInUp 0.5s ease-out both;
+        /* 主界面：标题缩放弹入，按钮从两侧滑入 */
+        .screen.active .game-title {
+            animation: scaleInElastic 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
         }
-        .screen.active .game-subtitle { animation-delay: 0.1s; }
-        .screen.active .home-buttons { animation-delay: 0.2s; }
+        .screen.active .game-subtitle {
+            animation: fadeIn 0.5s ease-out 0.15s both;
+        }
+        .screen.active .home-buttons .btn:first-child {
+            animation: slideFromLeft 0.5s ease-out 0.25s both;
+        }
+        .screen.active .home-buttons .btn:last-child {
+            animation: slideFromRight 0.5s ease-out 0.35s both;
+        }
         .game-title {
             background-size: 200% 200%;
             animation: gradientShift 4s ease infinite;
         }
+        /* 关卡选择：卡片翻转进入，错开 */
         .level-card {
-            animation: fadeInUp 0.4s ease-out both;
+            animation: flipIn 0.5s ease-out both;
+            transform-origin: left center;
         }
         .level-card:nth-child(1) { animation-delay: 0.05s; }
-        .level-card:nth-child(2) { animation-delay: 0.12s; }
-        .level-card:nth-child(3) { animation-delay: 0.19s; }
-        .level-card:nth-child(4) { animation-delay: 0.26s; }
+        .level-card:nth-child(2) { animation-delay: 0.15s; }
+        .level-card:nth-child(3) { animation-delay: 0.25s; }
+        .level-card:nth-child(4) { animation-delay: 0.35s; }
+        .screen.active .section-title {
+            animation: slideFromLeft 0.4s ease-out both;
+        }
         .level-card:hover:not(.disabled) {
-            transform: translateY(-2px);
+            transform: translateY(-2px) scale(1.01);
             box-shadow: 0 8px 24px rgba(0,0,0,0.3);
             border-color: #444;
         }
+        /* 图鉴：卡片缩放弹入，错开 */
         .collection-item {
-            animation: fadeInUp 0.35s ease-out both;
+            animation: scaleInElastic 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
         }
         .collection-item:nth-child(1) { animation-delay: 0.03s; }
         .collection-item:nth-child(2) { animation-delay: 0.08s; }
@@ -206,24 +263,36 @@
         }
         .collection-photo {
             transition: transform 0.3s ease;
+            cursor: pointer;
         }
         .collection-item:hover .collection-photo:not(.locked) {
             transform: scale(1.05);
         }
+        /* 胜利界面：从上方掉落 */
         .game-overlay.show {
             animation: fadeIn 0.3s ease-out;
         }
-        .game-overlay.show .overlay-title {
-            animation: fadeInUp 0.4s ease-out 0.1s both;
+        #winOverlay.show .overlay-title {
+            animation: dropIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
         }
-        .game-overlay.show .final-photo {
-            animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+        #winOverlay.show .final-photo {
+            animation: scaleInElastic 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both;
         }
-        .game-overlay.show .overlay-score {
-            animation: fadeInUp 0.4s ease-out 0.35s both;
+        #winOverlay.show .overlay-score {
+            animation: slideFromLeft 0.4s ease-out 0.45s both;
         }
-        .game-overlay.show .overlay-buttons {
-            animation: fadeInUp 0.4s ease-out 0.5s both;
+        #winOverlay.show .overlay-buttons {
+            animation: slideFromRight 0.4s ease-out 0.55s both;
+        }
+        /* 失败界面：抖动进入 */
+        #loseOverlay.show .overlay-title {
+            animation: shakeIn 0.5s ease-out 0.1s both;
+        }
+        #loseOverlay.show .overlay-score {
+            animation: dropIn 0.4s ease-out 0.25s both;
+        }
+        #loseOverlay.show .overlay-buttons {
+            animation: fadeInUp 0.4s ease-out 0.4s both;
         }
         .final-photo {
             animation: pulseGlow 2s ease-in-out infinite;
@@ -256,6 +325,7 @@
         }
         .tab {
             position: relative;
+            transition: all 0.25s ease;
         }
         .tab.active {
             box-shadow: 0 2px 8px rgba(255,255,255,0.15);
@@ -268,6 +338,91 @@
         }
         .next-ball {
             animation: floatY 2s ease-in-out infinite;
+        }
+        /* 关卡过渡遮罩 */
+        #transition-overlay {
+            position: fixed;
+            inset: 0;
+            background: #0a0a0a;
+            z-index: 9999;
+            transform: scaleY(0);
+            transform-origin: top;
+            pointer-events: none;
+        }
+        #transition-overlay.wipe-in {
+            animation: transitionWipe 0.35s ease-in forwards;
+            pointer-events: all;
+        }
+        #transition-overlay.wipe-out {
+            animation: transitionWipeOut 0.35s ease-out forwards;
+            pointer-events: all;
+        }
+        /* 图鉴图片预览 */
+        #photo-preview {
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        #photo-preview.show {
+            display: flex;
+            animation: fadeIn 0.25s ease-out;
+        }
+        #photo-preview .preview-img-wrap {
+            width: min(80vw, 360px);
+            height: min(80vw, 360px);
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid rgba(255,255,255,0.2);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: rotateZoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #photo-preview.closing .preview-img-wrap {
+            animation: rotateZoomOut 0.4s ease-in forwards;
+        }
+        #photo-preview .preview-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #photo-preview .preview-close {
+            position: absolute;
+            top: calc(env(safe-area-inset-top) + 16px);
+            right: 16px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        #photo-preview .preview-info {
+            position: absolute;
+            bottom: calc(env(safe-area-inset-bottom) + 40px);
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #fff;
+        }
+        #photo-preview .preview-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        #photo-preview .preview-level {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
         }
 
         /* ===== 主界面 ===== */
@@ -711,6 +866,20 @@
 <body>
     <div id="app">
 
+        <!-- 关卡过渡遮罩 -->
+        <div id="transition-overlay"></div>
+        <!-- 图鉴图片预览 -->
+        <div id="photo-preview" onclick="closePhotoPreview()">
+            <button class="preview-close" onclick="event.stopPropagation();closePhotoPreview()">✕</button>
+            <div class="preview-img-wrap">
+                <img id="previewImg" src="" alt="预览">
+            </div>
+            <div class="preview-info">
+                <div class="preview-name" id="previewName"></div>
+                <div class="preview-level" id="previewLevel"></div>
+            </div>
+        </div>
+
         <!-- 加载界面 -->
         <div id="loading" class="screen active">
             <div class="loading-content">
@@ -1083,7 +1252,8 @@
                 const unlocked = isUnlocked(cl, i);
                 const src = getPhotoPath(cl, i);
                 html += '<div class="collection-item">' +
-                    '<div class="collection-photo ' + (unlocked ? '' : 'locked') + '">' +
+                    '<div class="collection-photo ' + (unlocked ? '' : 'locked') + '" ' +
+                    (unlocked ? 'onclick="openPhotoPreview(\'' + cl + '\',' + i + ')"' : '') + '>' +
                     (unlocked ? '<img src="' + src + '" alt="' + name + '等级' + i + '">' : '?') +
                     '</div>' +
                     '<div class="collection-info">' +
@@ -1120,6 +1290,32 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+        }
+        // 图鉴图片旋转放大预览
+        function openPhotoPreview(cl, level) {
+            if (!isUnlocked(cl, level)) return;
+            const preview = document.getElementById('photo-preview');
+            const img = document.getElementById('previewImg');
+            const nameEl = document.getElementById('previewName');
+            const levelEl = document.getElementById('previewLevel');
+            let name = '';
+            if (cl === 'ma') name = '老马';
+            else if (cl === 'pang') name = '老胖';
+            else if (cl === 'ji') name = '鸡';
+            else name = '未知';
+            img.src = getPhotoPath(cl, level);
+            nameEl.textContent = name + ' 帅照';
+            levelEl.textContent = '等级 ' + level;
+            preview.classList.remove('closing');
+            preview.classList.add('show');
+        }
+        function closePhotoPreview() {
+            const preview = document.getElementById('photo-preview');
+            preview.classList.add('closing');
+            setTimeout(() => {
+                preview.classList.remove('show');
+                preview.classList.remove('closing');
+            }, 380);
         }
 
         // ============================================================
@@ -1513,8 +1709,19 @@
                 }
             }
             currentCharacter = cl;
-            showScreen('game');
-            setTimeout(() => initGame(cl), 50);
+            // 关卡过渡动画
+            const overlay = document.getElementById('transition-overlay');
+            overlay.classList.remove('wipe-out');
+            overlay.classList.add('wipe-in');
+            setTimeout(() => {
+                showScreen('game');
+                setTimeout(() => initGame(cl), 50);
+                setTimeout(() => {
+                    overlay.classList.remove('wipe-in');
+                    overlay.classList.add('wipe-out');
+                    setTimeout(() => overlay.classList.remove('wipe-out'), 400);
+                }, 200);
+            }, 350);
         }
 
         function restartGame() { initGame(currentCharacter); }
