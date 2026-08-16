@@ -16,12 +16,86 @@ let isMusicPlaying = false;
 let musicShuffleOrder = [];
 let musicShufflePos = 0;
 const musicMetaCache = {}; // 缓存ID3解析结果
+let localMusicList = []; // 本地添加的歌曲
+let currentMusicTab = 'online'; // 当前播放列表tab: online / local
+let db = null; // IndexedDB用于持久化本地音乐
+
+// 初始化IndexedDB
+function initLocalMusicDB() {
+    return new Promise((resolve) => {
+        const req = indexedDB.open('localMusicDB', 1);
+        req.onupgradeneeded = (e) => {
+            const database = e.target.result;
+            if (!database.objectStoreNames.contains('songs')) {
+                database.createObjectStore('songs', {keyPath: 'id'});
+            }
+        };
+        req.onsuccess = (e) => {
+            db = e.target.result;
+            loadLocalMusic();
+            resolve();
+        };
+        req.onerror = () => { resolve(); };
+    });
+}
+
+function loadLocalMusic() {
+    if (!db) return;
+    const tx = db.transaction('songs', 'readonly');
+    const store = tx.objectStore('songs');
+    const req = store.getAll();
+    req.onsuccess = () => {
+        localMusicList = req.result.map(song => ({
+            id: song.id,
+            name: song.name,
+            url: URL.createObjectURL(song.blob)
+        }));
+    };
+}
+
+function saveLocalMusic(file) {
+    return new Promise((resolve) => {
+        if (!db) { resolve(null); return; }
+        const id = Date.now() + '_' + file.name;
+        const tx = db.transaction('songs', 'readwrite');
+        const store = tx.objectStore('songs');
+        store.put({id: id, name: file.name, blob: file});
+        tx.oncomplete = () => {
+            const song = {id: id, name: file.name, url: URL.createObjectURL(file)};
+            localMusicList.push(song);
+            resolve(song);
+        };
+        tx.onerror = () => resolve(null);
+    });
+}
+
+function addLocalSongs(files) {
+    const audioFiles = Array.from(files).filter(f => 
+        /\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(f.name)
+    );
+    let count = 0;
+    audioFiles.forEach(async (file) => {
+        const song = await saveLocalMusic(file);
+        if (song) count++;
+        if (count === audioFiles.length) {
+            renderMusicList();
+        }
+    });
+}
+
+function deleteLocalSong(id) {
+    if (!db) return;
+    const tx = db.transaction('songs', 'readwrite');
+    tx.objectStore('songs').delete(id);
+    localMusicList = localMusicList.filter(s => s.id !== id);
+    renderMusicList();
+}
 
 function initMusic() {
     const player = document.getElementById('music-player');
-    if (musicList.length === 0) {
-        player.style.display = 'none';
-        return;
+    initLocalMusicDB();
+    if (musicList.length === 0 && localMusicList.length === 0) {
+        // 仍然显示播放器，用户可以添加本地歌曲
     }
     audio = new Audio();
     audio.loop = false;
@@ -30,8 +104,8 @@ function initMusic() {
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
-        // 播放成功后解析ID3并更新歌名
-        const src = audio.src;
+        // 播放成功后解析ID3并更新歌名（用相对路径作为缓存key）
+        const src = audio.src.replace(window.location.origin + '/', '');
         parseMusicMeta(src, function(meta) {
             if (meta) {
                 if (meta.cover) setMusicCover(meta.cover);
@@ -208,15 +282,25 @@ function toggleMusic() {
 }
 
 function nextMusic() {
-    if (!audio || musicList.length === 0) return;
-    musicShufflePos = (musicShufflePos + 1) % musicShuffleOrder.length;
-    playMusicAt(musicShuffleOrder[musicShufflePos]);
+    if (!audio) return;
+    if (currentPlayingSource === 'local' && localMusicList.length > 0) {
+        const nextIdx = (currentMusicIndex + 1) % localMusicList.length;
+        playLocalMusicAt(nextIdx);
+    } else if (musicList.length > 0) {
+        musicShufflePos = (musicShufflePos + 1) % musicShuffleOrder.length;
+        playMusicAt(musicShuffleOrder[musicShufflePos]);
+    }
 }
 
 function prevMusic() {
-    if (!audio || musicList.length === 0) return;
-    musicShufflePos = (musicShufflePos - 1 + musicShuffleOrder.length) % musicShuffleOrder.length;
-    playMusicAt(musicShuffleOrder[musicShufflePos]);
+    if (!audio) return;
+    if (currentPlayingSource === 'local' && localMusicList.length > 0) {
+        const prevIdx = (currentMusicIndex - 1 + localMusicList.length) % localMusicList.length;
+        playLocalMusicAt(prevIdx);
+    } else if (musicList.length > 0) {
+        musicShufflePos = (musicShufflePos - 1 + musicShuffleOrder.length) % musicShuffleOrder.length;
+        playMusicAt(musicShuffleOrder[musicShufflePos]);
+    }
 }
 function toggleMusicList() {
     const panel = document.getElementById('music-list-panel');
@@ -235,26 +319,86 @@ function toggleMusicList() {
 function renderMusicList() {
     const grid = document.getElementById('musicListGrid');
     if (!grid) return;
+    // 更新tab状态
+    document.querySelectorAll('.music-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === currentMusicTab);
+    });
+    
     let html = '';
-    musicList.forEach((item, i) => {
-        const isPlaying = (i === currentMusicIndex && isMusicPlaying);
-        const src = getMusicSrc(item);
-        const meta = musicMetaCache[src];
-        const coverUrl = (meta && meta.cover) ? meta.cover : getMusicCover(item);
-        const name = (meta && meta.title) ? meta.title : getMusicName(item);
-        html += '<div class="music-list-item' + (isPlaying ? ' active' : '') + '" onclick="playMusicAt(' + i + ');toggleMusicList();">' +
-            '<div class="mli-cover"><img src="' + coverUrl + '" onerror="this.style.display=\'none\';this.parentElement.innerHTML=\'♫\'"></div>' +
+    const list = currentMusicTab === 'online' ? musicList : localMusicList;
+    
+    if (list.length === 0) {
+        if (currentMusicTab === 'local') {
+            html = '<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);font-size:13px;">还没有本地歌曲<br>点击下方按钮添加</div>';
+        } else {
+            html = '<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);font-size:13px;">暂无在线歌曲</div>';
+        }
+    }
+    
+    list.forEach((item, i) => {
+        const isPlaying = (i === currentMusicIndex && isMusicPlaying && currentPlayingSource === currentMusicTab);
+        let src, name, coverUrl;
+        if (currentMusicTab === 'online') {
+            src = getMusicSrc(item);
+            const meta = musicMetaCache[src];
+            coverUrl = (meta && meta.cover) ? meta.cover : getMusicCover(item);
+            name = (meta && meta.title) ? meta.title : getMusicName(item);
+        } else {
+            src = item.url;
+            const meta = musicMetaCache[src];
+            coverUrl = (meta && meta.cover) ? meta.cover : '';
+            name = (meta && meta.title) ? meta.title : item.name.replace(/\.[^/.]+$/, '');
+        }
+        const coverHtml = coverUrl 
+            ? '<img src="' + coverUrl + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' 
+            : '<span style="font-size:18px;">♫</span>';
+        const delBtn = currentMusicTab === 'local' 
+            ? '<div class="mli-delete" onclick="event.stopPropagation();deleteLocalSong(\'' + item.id + '\')">✕</div>' 
+            : '';
+        html += '<div class="music-list-item' + (isPlaying ? ' active' : '') + '" onclick="playMusicFromList(\'' + currentMusicTab + '\',' + i + ')">' +
+            '<div class="mli-cover">' + coverHtml + '</div>' +
             '<div class="mli-info"><div class="mli-name">' + name + '</div>' +
-            '<div class="mli-status">' + (isPlaying ? '正在播放' : '点击播放') + '</div></div></div>';
+            '<div class="mli-status">' + (isPlaying ? '正在播放' : '点击播放') + '</div></div>' + delBtn + '</div>';
     });
     grid.innerHTML = html;
-    // 异步解析所有未缓存的音乐封面
-    musicList.forEach((item) => {
-        const src = getMusicSrc(item);
+    
+    // 异步解析未缓存的封面
+    list.forEach((item) => {
+        const src = currentMusicTab === 'online' ? getMusicSrc(item) : item.url;
         if (!musicMetaCache[src]) {
             parseMusicMeta(src, function() { renderMusicList(); });
         }
     });
+}
+
+let currentPlayingSource = 'online'; // 当前播放的来源
+
+function playMusicFromList(source, index) {
+    currentPlayingSource = source;
+    if (source === 'online') {
+        playMusicAt(index);
+    } else {
+        playLocalMusicAt(index);
+    }
+    toggleMusicList();
+}
+
+function playLocalMusicAt(index) {
+    if (!audio || localMusicList.length === 0) return;
+    currentMusicIndex = index;
+    const song = localMusicList[index];
+    console.log('播放本地音乐:', song.name);
+    setMusicCover(null);
+    document.getElementById('musicTitle').textContent = song.name.replace(/\.[^/.]+$/, '');
+    audio.src = song.url;
+    audio.play().catch((err) => {
+        console.error('本地音乐播放失败:', err);
+    });
+}
+
+function switchMusicTab(tab) {
+    currentMusicTab = tab;
+    renderMusicList();
 }
 
 // ============================================================
