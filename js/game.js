@@ -174,6 +174,8 @@ function getMusicCover(item) {
     return base + '.jpg'; // 自动找同名jpg封面
 }
 function parseMusicMeta(src, callback, force) {
+    const debugEl = document.getElementById('musicDebug');
+    if (debugEl) debugEl.textContent = 'parseMusicMeta被调用 src=' + src.substring(0,30) + ' force=' + force + ' 有缓存=' + !!musicMetaCache[src];
     if (musicMetaCache[src] && !force && musicMetaCache[src].cover) {
         callback(musicMetaCache[src]);
         return;
@@ -239,12 +241,16 @@ function parseMusicMeta(src, callback, force) {
             },
             onError: function(error) {
                 console.error('ID3解析失败:', error);
+                const d = document.getElementById('musicDebug');
+                if (d) d.textContent += ' | onError:' + JSON.stringify(error).substring(0,50);
                 musicMetaCache[src] = {title: '', artist: '', cover: null};
                 callback(null);
             }
         });
     } catch(e) {
         console.error('parseMusicMeta异常:', e);
+        const d2 = document.getElementById('musicDebug');
+        if (d2) d2.textContent += ' | catch:' + e.message;
         musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
     }
