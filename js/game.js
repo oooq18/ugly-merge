@@ -351,17 +351,27 @@ function playMusicAt(index) {
 }
 
 function toggleMusic() {
-    if (!audio || musicList.length === 0) return;
+    let dbg3 = document.getElementById('id3Debug');
+    if (!dbg3) {
+        dbg3 = document.createElement('div');
+        dbg3.id = 'id3Debug';
+        dbg3.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff0;color:#000;font-size:14px;padding:8px;z-index:999999;word-break:break-all;font-weight:bold;';
+        document.body.appendChild(dbg3);
+    }
+    dbg3.textContent = 'toggleMusic被调用, currentMusicIndex=' + currentMusicIndex + ', isMusicPlaying=' + isMusicPlaying + ', audio存在=' + !!audio;
+    if (!audio || musicList.length === 0) { dbg3.textContent += ' | 直接返回'; return; }
     if (currentMusicIndex === -1) {
+        dbg3.textContent += ' | 调用playMusicAt';
         playMusicAt(musicShuffleOrder[musicShufflePos]);
         return;
     }
     if (isMusicPlaying) {
+        dbg3.textContent += ' | 暂停';
         audio.pause();
     } else {
+        dbg3.textContent += ' | 播放';
         audio.play();
     }
-    // 播放状态由 audio 的 play/pause 事件自动同步
 }
 
 function nextMusic() {
