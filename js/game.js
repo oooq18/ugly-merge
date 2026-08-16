@@ -188,12 +188,10 @@ function parseMusicMeta(src, callback) {
                 console.log('ID3解析成功，所有字段:', JSON.stringify(tag.tags));
                 const fieldNames = Object.keys(tag.tags).join(',');
                 const hasPic = !!(tag.tags.picture || tag.tags.image);
-                console.log('有封面字段:', hasPic, '字段列表:', fieldNames);
-                // 调试：在页面上显示信息
-                const debugEl = document.getElementById('musicDebug');
-                if (debugEl) {
-                    debugEl.textContent = '字段:' + fieldNames + ' | 有封面:' + hasPic;
-                }
+                const picInfo = tag.tags.picture ? ('pic数据类型:' + typeof tag.tags.picture.data + ' 长度:' + (tag.tags.picture.data ? tag.tags.picture.data.length : '无')) : '无picture';
+                console.log('有封面字段:', hasPic, '字段列表:', fieldNames, picInfo);
+                // 调试：把信息显示在标题上
+                document.getElementById('musicTitle').textContent = '字段:' + fieldNames + ' | ' + picInfo;
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
