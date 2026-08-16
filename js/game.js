@@ -186,10 +186,14 @@ function parseMusicMeta(src, callback) {
         jsmediatags.read(src, {
             onSuccess: function(tag) {
                 console.log('ID3解析成功，所有字段:', JSON.stringify(tag.tags));
-                // 调试：把字段名显示在标题上
                 const fieldNames = Object.keys(tag.tags).join(',');
                 const hasPic = !!(tag.tags.picture || tag.tags.image);
                 console.log('有封面字段:', hasPic, '字段列表:', fieldNames);
+                // 调试：在页面上显示信息
+                const debugEl = document.getElementById('musicDebug');
+                if (debugEl) {
+                    debugEl.textContent = '字段:' + fieldNames + ' | 有封面:' + hasPic;
+                }
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
@@ -217,7 +221,8 @@ function parseMusicMeta(src, callback) {
                             const blob = new Blob([uint8], {type: picture.format || picture.mime || 'image/jpeg'});
                             meta.cover = URL.createObjectURL(blob);
                             console.log('封面解析成功, 大小:', uint8.length, '格式:', picture.format || picture.mime, 'URL:', meta.cover.substring(0,50));
-                            // 调试：立即设置封面测试
+                            const debugEl2 = document.getElementById('musicDebug');
+                            if (debugEl2) debugEl2.textContent += ' | 封面URL:' + meta.cover.substring(0,30);
                             setTimeout(() => setMusicCover(meta.cover), 100);
                         } else {
                             console.log('找到picture但没有data字段:', Object.keys(picture));
@@ -246,6 +251,8 @@ function parseMusicMeta(src, callback) {
 
 function setMusicCover(coverPath) {
     const coverEl = document.querySelector('#music-player .music-cover');
+    const debugEl = document.getElementById('musicDebug');
+    if (debugEl) debugEl.textContent += ' | setCover:' + (coverPath ? coverPath.substring(0,20) : 'null');
     if (!coverEl) return;
     if (!coverPath) {
         coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
