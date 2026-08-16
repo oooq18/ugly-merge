@@ -175,6 +175,7 @@ function parseMusicMeta(src, callback) {
     }
     if (typeof jsmediatags === 'undefined') {
         console.log('jsmediatags未加载');
+        musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
         return;
     }
@@ -229,25 +230,34 @@ function parseMusicMeta(src, callback) {
         });
     } catch(e) {
         console.error('parseMusicMeta异常:', e);
+        musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
     }
 }
 
+let _musicCoverVersion = 0;
 function setMusicCover(coverPath) {
     const coverEl = document.querySelector('#music-player .music-cover');
     if (!coverEl) return;
+    const myVersion = ++_musicCoverVersion;
     if (!coverPath) {
-        coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+        if (myVersion === _musicCoverVersion) {
+            coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+        }
         return;
     }
     const img = document.createElement('img');
     img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
     img.onload = function() {
-        coverEl.innerHTML = '';
-        coverEl.appendChild(img);
+        if (myVersion === _musicCoverVersion) {
+            coverEl.innerHTML = '';
+            coverEl.appendChild(img);
+        }
     };
     img.onerror = function() {
-        coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+        if (myVersion === _musicCoverVersion) {
+            coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+        }
     };
     img.src = coverPath;
 }
@@ -258,7 +268,7 @@ function playMusicAt(index) {
     const item = musicList[index];
     const src = getMusicSrc(item);
     console.log('开始播放:', src);
-    setMusicCover(getMusicCover(item));
+    setMusicCover(null); // 先显示默认图标，等play事件中解析ID3后再设置真实封面
     document.getElementById('musicTitle').textContent = getMusicName(item);
     audio.src = src;
     audio.play().catch((err) => {
@@ -316,9 +326,12 @@ function toggleMusicList() {
         renderMusicList();
     }
 }
+let _isRenderingMusicList = false;
 function renderMusicList() {
     const grid = document.getElementById('musicListGrid');
     if (!grid) return;
+    if (_isRenderingMusicList) return;
+    _isRenderingMusicList = true;
     // 更新tab状态
     document.querySelectorAll('.music-tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === currentMusicTab);
@@ -362,13 +375,16 @@ function renderMusicList() {
     });
     grid.innerHTML = html;
     
-    // 异步解析未缓存的封面
-    list.forEach((item) => {
-        const src = currentMusicTab === 'online' ? getMusicSrc(item) : item.url;
-        if (!musicMetaCache[src]) {
-            parseMusicMeta(src, function() { renderMusicList(); });
-        }
-    });
+    _isRenderingMusicList = false;
+    // 异步解析未缓存的封面（用setTimeout避免同步递归）
+    setTimeout(() => {
+        list.forEach((item) => {
+            const src = currentMusicTab === 'online' ? getMusicSrc(item) : item.url;
+            if (!musicMetaCache[src]) {
+                parseMusicMeta(src, function() { renderMusicList(); });
+            }
+        });
+    }, 0);
 }
 
 let currentPlayingSource = 'online'; // 当前播放的来源

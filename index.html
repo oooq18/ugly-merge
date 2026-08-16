@@ -170,7 +170,16 @@
             <div class="music-list-header">
                 <span>播放列表</span>
             </div>
+            <div class="music-tabs">
+                <div class="music-tab active" data-tab="online" onclick="switchMusicTab('online')">在线</div>
+                <div class="music-tab" data-tab="local" onclick="switchMusicTab('local')">本地</div>
+            </div>
             <div class="music-list-grid" id="musicListGrid"></div>
+            <div class="music-add-btn" onclick="document.getElementById('localMusicInput').click()">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+                添加本地歌曲
+            </div>
+            <input type="file" id="localMusicInput" accept="audio/*" multiple style="display:none" onchange="addLocalSongs(this.files);this.value=''">
         </div>
     </div>
 
