@@ -25,12 +25,25 @@ function initMusic() {
     }
     audio = new Audio();
     audio.loop = false;
+    // 用事件同步播放状态，避免手动设置不同步
+    audio.addEventListener('play', () => {
+        isMusicPlaying = true;
+        document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        document.getElementById('music-player').classList.add('playing');
+    });
+    audio.addEventListener('pause', () => {
+        isMusicPlaying = false;
+        document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+        document.getElementById('music-player').classList.remove('playing');
+    });
     audio.addEventListener('ended', () => {
         nextMusic();
     });
-    audio.addEventListener('error', () => {
-        console.log('音乐加载失败，跳过');
-        nextMusic();
+    audio.addEventListener('error', (e) => {
+        console.log('音乐加载失败:', e);
+        isMusicPlaying = false;
+        document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+        document.getElementById('music-player').classList.remove('playing');
     });
     musicShuffleOrder = [...Array(musicList.length).keys()];
     for (let i = musicShuffleOrder.length - 1; i > 0; i--) {
@@ -48,12 +61,9 @@ function updateMusicPlayerVisibility() {
         player.style.display = 'flex';
     } else {
         player.style.display = 'none';
-        // 离开主页时暂停音乐
+        // 离开主页时暂停音乐（状态由pause事件同步）
         if (isMusicPlaying && audio) {
             audio.pause();
-            isMusicPlaying = false;
-            document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
-            document.getElementById('music-player').classList.remove('playing');
         }
     }
 }
@@ -92,21 +102,26 @@ function parseMusicMeta(src, callback) {
                 };
                 if (tag.tags.picture && tag.tags.picture.data) {
                     const pic = tag.tags.picture;
-                    let base64 = '';
-                    for (let i = 0; i < pic.data.length; i++) {
-                        base64 += String.fromCharCode(pic.data[i]);
+                    try {
+                        // 用Uint8Array转Blob再创建URL，更可靠
+                        const uint8 = new Uint8Array(pic.data);
+                        const blob = new Blob([uint8], {type: pic.format});
+                        meta.cover = URL.createObjectURL(blob);
+                    } catch(e) {
+                        console.log('封面转换失败:', e);
                     }
-                    meta.cover = 'data:' + pic.format + ';base64,' + btoa(base64);
                 }
                 musicMetaCache[src] = meta;
                 callback(meta);
             },
-            onError: function() {
+            onError: function(error) {
+                console.log('ID3解析失败:', error);
                 musicMetaCache[src] = {title: '', artist: '', cover: null};
                 callback(null);
             }
         });
     } catch(e) {
+        console.log('parseMusicMeta异常:', e);
         callback(null);
     }
 }
@@ -130,7 +145,7 @@ function playMusicAt(index) {
     const item = musicList[index];
     const src = getMusicSrc(item);
     audio.src = src;
-    // 先显示默认封面
+    // 先显示默认封面和歌名
     setMusicCover(getMusicCover(item));
     document.getElementById('musicTitle').textContent = getMusicName(item);
     // 解析ID3获取真实封面和歌名
@@ -139,16 +154,10 @@ function playMusicAt(index) {
             if (meta.cover) setMusicCover(meta.cover);
             if (meta.title) document.getElementById('musicTitle').textContent = meta.title + (meta.artist ? ' - ' + meta.artist : '');
         }
-    });
-    audio.play().then(() => {
-        isMusicPlaying = true;
-        document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-        document.getElementById('music-player').classList.add('playing');
         renderMusicList();
-    }).catch(() => {
-        isMusicPlaying = false;
-        document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
-        document.getElementById('music-player').classList.remove('playing');
+    });
+    // 播放状态由 audio 的 play/pause 事件同步
+    audio.play().catch(() => {
         document.getElementById('musicTitle').textContent = '点击播放';
     });
 }
@@ -161,15 +170,10 @@ function toggleMusic() {
     }
     if (isMusicPlaying) {
         audio.pause();
-        isMusicPlaying = false;
-        document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
-        document.getElementById('music-player').classList.remove('playing');
     } else {
         audio.play();
-        isMusicPlaying = true;
-        document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
-        document.getElementById('music-player').classList.add('playing');
     }
+    // 播放状态由 audio 的 play/pause 事件自动同步
 }
 
 function nextMusic() {
