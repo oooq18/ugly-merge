@@ -102,8 +102,10 @@ function initMusic() {
     audio.loop = false;
     // 用事件同步播放状态，避免手动设置不同步
     audio.addEventListener('play', () => {
+        const debugMsg = 'play事件触发! src=' + currentPlaySrc + ' idx=' + currentMusicIndex;
+        document.getElementById('musicTitle').textContent = debugMsg;
         const d0 = document.getElementById('musicDebug');
-        if (d0) d0.textContent = 'play事件触发! currentPlaySrc=' + currentPlaySrc + ' currentMusicIndex=' + currentMusicIndex;
+        if (d0) d0.textContent = debugMsg;
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
