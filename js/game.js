@@ -63,7 +63,6 @@ function saveLocalMusic(file) {
         store.put({id: id, name: file.name, blob: file});
         tx.oncomplete = () => {
             const song = {id: id, name: file.name, url: URL.createObjectURL(file)};
-            localMusicList.push(song);
             resolve(song);
         };
         tx.onerror = () => resolve(null);
