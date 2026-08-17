@@ -135,6 +135,8 @@ function initMusic() {
         [musicShuffleOrder[i], musicShuffleOrder[j]] = [musicShuffleOrder[j], musicShuffleOrder[i]];
     }
     musicShufflePos = 0;
+    // 初始化tab指示器位置
+    setTimeout(updateTabIndicator, 100);
 }
 
 function updateMusicPlayerVisibility() {
@@ -332,10 +334,6 @@ function renderMusicList() {
     if (!grid) return;
     if (_isRenderingMusicList) return;
     _isRenderingMusicList = true;
-    // 更新tab状态
-    document.querySelectorAll('.music-tab').forEach(t => {
-        t.classList.toggle('active', t.dataset.tab === currentMusicTab);
-    });
     
     let html = '';
     const list = currentMusicTab === 'online' ? musicList : localMusicList;
@@ -373,9 +371,24 @@ function renderMusicList() {
             '<div class="mli-info"><div class="mli-name">' + name + '</div>' +
             '<div class="mli-status">' + (isPlaying ? '正在播放' : '点击播放') + '</div></div>' + delBtn + '</div>';
     });
+    // 高度过渡动画
+    const prevHeight = grid.offsetHeight;
     grid.innerHTML = html;
+    const newHeight = grid.scrollHeight;
+    if (prevHeight !== newHeight && prevHeight > 0) {
+        grid.style.height = prevHeight + 'px';
+        // 强制重排
+        void grid.offsetHeight;
+        grid.style.height = newHeight + 'px';
+        const onEnd = () => {
+            grid.style.height = '';
+            grid.removeEventListener('transitionend', onEnd);
+        };
+        grid.addEventListener('transitionend', onEnd);
+    }
     
     _isRenderingMusicList = false;
+    updateTabIndicator();
     // 异步解析未缓存的封面（用setTimeout避免同步递归）
     setTimeout(() => {
         list.forEach((item) => {
@@ -421,8 +434,22 @@ function playLocalMusicAt(index) {
     });
 }
 
+function updateTabIndicator() {
+    const indicator = document.getElementById('tabIndicator');
+    const activeTab = document.querySelector('.music-tab.active');
+    if (!indicator || !activeTab) return;
+    const tabsRect = activeTab.parentElement.getBoundingClientRect();
+    const tabRect = activeTab.getBoundingClientRect();
+    indicator.style.left = (tabRect.left - tabsRect.left) + 'px';
+    indicator.style.width = tabRect.width + 'px';
+}
+
 function switchMusicTab(tab) {
     currentMusicTab = tab;
+    document.querySelectorAll('.music-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === tab);
+    });
+    updateTabIndicator();
     const addBtn = document.querySelector('.music-add-btn');
     if (addBtn) addBtn.style.display = (tab === 'local') ? 'flex' : 'none';
     renderMusicList();
@@ -1241,6 +1268,7 @@ function savePoster() {
 
 window.addEventListener('resize', () => {
     if (currentScreen === 'game') { resizeCanvas(); }
+    updateTabIndicator();
 });
 
 document.addEventListener('visibilitychange', () => {

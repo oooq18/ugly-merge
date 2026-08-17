@@ -1091,6 +1091,7 @@
 
         /* 播放列表tab切换 */
         .music-tabs {
+            position: relative;
             display: flex;
             gap: 4px;
             padding: 12px 16px;
@@ -1098,24 +1099,39 @@
             justify-content: center;
             background: rgba(255,255,255,0.02);
         }
+        .tab-indicator {
+            position: absolute;
+            bottom: 12px;
+            height: calc(100% - 24px);
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08));
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1), width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            z-index: 0;
+        }
         .music-tab {
+            position: relative;
+            z-index: 1;
             padding: 8px 24px;
             border-radius: 10px;
             font-size: 13px;
             font-weight: 500;
             color: rgba(255,255,255,0.45);
             cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             letter-spacing: 0.5px;
         }
         .music-tab.active {
-            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08));
             color: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
         }
         .music-tab:hover:not(.active) {
             color: rgba(255,255,255,0.75);
-            background: rgba(255,255,255,0.04);
+        }
+        /* 列表高度过渡 */
+        .music-list-grid {
+            transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
         }
         /* 添加歌曲按钮 */
         .music-add-btn {
