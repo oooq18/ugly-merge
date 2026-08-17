@@ -161,17 +161,26 @@ function initMusic() {
 
 // 图片预加载完成后调用：预解析ID3封面 + 自动播放
 function startAutoPlay() {
-    // 预解析所有在线歌曲的ID3封面（后台异步，不阻塞UI），播放时秒开
-    musicList.forEach(function(item) {
-        const src = getMusicSrc(item);
-        if (!musicMetaCache[src]) {
-            parseMusicMeta(src, function() {});
+    if (musicList.length === 0 || currentMusicIndex !== -1) return;
+    const firstIdx = musicShuffleOrder[musicShufflePos];
+    const firstItem = musicList[firstIdx];
+    const firstSrc = getMusicSrc(firstItem);
+    // 先解析第一首的ID3（封面/歌手/歌词），解析完再播放，确保封面和音乐同时出现
+    parseMusicMeta(firstSrc, function() {
+        if (currentMusicIndex !== -1) return; // 期间用户已手动播放
+        playMusicAt(firstIdx);
+        // 播放开始后，后台逐个预解析其余歌曲的ID3（不抢带宽）
+        let i = 0;
+        function preloadNext() {
+            if (i >= musicList.length) return;
+            const item = musicList[i];
+            const src = getMusicSrc(item);
+            i++;
+            if (musicMetaCache[src]) { preloadNext(); return; }
+            parseMusicMeta(src, function() { setTimeout(preloadNext, 200); });
         }
+        preloadNext();
     });
-    // 自动随机播放第一首（浏览器可能阻止，被阻止时等用户交互后恢复）
-    if (musicList.length > 0 && currentMusicIndex === -1) {
-        playMusicAt(musicShuffleOrder[musicShufflePos]);
-    }
 }
 
 function updateMusicPlayerVisibility() {
@@ -237,12 +246,19 @@ function playMusicAt(index) {
     const artistEl = document.getElementById('musicArtist');
     if (artistEl) artistEl.textContent = '';
     setMusicCover(null); // 先清空旧封面
+    // 0. 缓存命中：同步设置封面/歌手/歌词，确保和音乐同时出现
+    const cached = musicMetaCache[src];
+    if (cached) {
+        if (cached.cover) setMusicCover(cached.cover);
+        if (cached.artist && artistEl) artistEl.textContent = cached.artist;
+        updateLyricsDisplay(displayName, cached);
+    }
     // 1. 尝试同名封面图（最快，本地文件直接加载）
     resolveMusicCover(item, function(coverPath) {
         if (currentPlaySrc !== src) return; // 竞态保护：已切歌则丢弃
         if (coverPath) setMusicCover(coverPath);
     });
-    // 2. 立即开始解析ID3（封面/歌手/歌词）
+    // 2. 解析ID3（封面/歌手/歌词），缓存命中时同步回调
     parseMusicMeta(src, function(meta) {
         if (currentPlaySrc !== src) return; // 竞态保护：已切歌则丢弃
         if (meta) {
@@ -611,7 +627,14 @@ function playLocalMusicAt(index) {
     document.getElementById('musicTitle').textContent = displayName;
     const artistEl = document.getElementById('musicArtist');
     if (artistEl) artistEl.textContent = '';
-    // 立即开始解析ID3（不等play成功）
+    // 缓存命中：同步设置封面/歌手/歌词
+    const cached = musicMetaCache[src];
+    if (cached) {
+        if (cached.cover) setMusicCover(cached.cover);
+        if (cached.artist && artistEl) artistEl.textContent = cached.artist;
+        updateLyricsDisplay(displayName, cached);
+    }
+    // 解析ID3（封面/歌手/歌词），缓存命中时同步回调
     parseMusicMeta(src, function(meta) {
         if (currentPlaySrc !== src) return; // 竞态保护
         if (meta) {
@@ -686,8 +709,16 @@ function getPhotoPath(charLevel, level) {
 function preloadPhotos() {
     return new Promise((resolve) => {
         const chars = ['ma', 'pang', 'ji'];
-        const total = chars.length * 7;
+        const paths = [];
+        chars.forEach(c => {
+            for (let i = 1; i <= 7; i++) {
+                paths.push({key: c + i, path: getPhotoPath(c, i)});
+            }
+        });
+        const total = paths.length;
         let loaded = 0;
+        const startTime = Date.now();
+        const MIN_TIME = 800; // 最短展示时间，避免进度条闪烁
 
         const bar = document.getElementById('loadingBar');
         const percent = document.getElementById('loadingPercent');
@@ -698,31 +729,45 @@ function preloadPhotos() {
             bar.style.width = pct + '%';
             percent.textContent = pct + '%';
             if (loaded >= total) {
-                resolve();
+                // 确保加载界面至少展示MIN_TIME，避免一闪而过
+                const elapsed = Date.now() - startTime;
+                const wait = Math.max(0, MIN_TIME - elapsed);
+                setTimeout(resolve, wait);
             }
         }
 
-        chars.forEach(c => {
-            for (let i = 1; i <= 7; i++) {
-                const img = new Image();
-                img.onload = updateProgress;
-                img.onerror = function() {
-                    console.warn('图片加载失败:', getPhotoPath(c, i));
+        function loadOne(item, retry) {
+            const img = new Image();
+            img.onload = function() {
+                // 等待解码完成，确保canvas能立即绘制不出现"?"
+                if (img.decode) {
+                    img.decode().then(updateProgress).catch(updateProgress);
+                } else {
                     updateProgress();
-                };
-                img.src = getPhotoPath(c, i);
-                photoCache[c + i] = img;
-            }
-        });
+                }
+            };
+            img.onerror = function() {
+                if (retry > 0) {
+                    setTimeout(() => loadOne(item, retry - 1), 300);
+                } else {
+                    console.warn('图片加载失败:', item.path);
+                    updateProgress();
+                }
+            };
+            img.src = item.path;
+            photoCache[item.key] = img;
+        }
+
+        paths.forEach(item => loadOne(item, 1));
 
         const timer = setTimeout(() => {
             if (loaded < total) {
-                console.warn('预加载超时，强制完成');
+                console.warn('预加载超时，强制完成，已加载:', loaded, '/', total);
                 bar.style.width = '100%';
                 percent.textContent = '100%';
                 resolve();
             }
-        }, 30000);
+        }, 60000);
 
         const origResolve = resolve;
         resolve = function() {
