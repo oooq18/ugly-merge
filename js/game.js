@@ -7,13 +7,14 @@ let musicList = [
     // 支持两种格式：
     // 1. 字符串：'assets/music/歌曲.mp3'（自动找同名封面 歌曲.jpg/png）
     // 2. 对象：{src: 'assets/music/歌曲.mp3', cover: 'assets/music/封面.jpg', name: '自定义歌名'}
-    'assets/music/错位时空.mp3',
-    'assets/music/悬溺.mp3',
+    {src: 'assets/music/错位时空.mp3', name: '错位时空'},
+    {src: 'assets/music/悬溺.mp3', name: '悬溺'},
 ];
 let audio = null;
 let currentMusicIndex = -1;
 let currentPlaySrc = ''; // 当前播放的src（相对路径或blob URL）
 let isMusicPlaying = false;
+let currentPlayingSource = 'online'; // 当前播放的来源 online / local
 let musicShuffleOrder = [];
 let musicShufflePos = 0;
 const musicMetaCache = {}; // 缓存ID3解析结果
@@ -94,6 +95,7 @@ function deleteLocalSong(id) {
 
 function deleteOnlineSong(index) {
     musicList.splice(index, 1);
+    rebuildShuffleOrder(); // 删除后重建shuffle顺序，避免越界
     if (currentPlayingSource === 'online') {
         currentMusicIndex = -1;
         audio.pause();
@@ -101,6 +103,14 @@ function deleteOnlineSong(index) {
     renderMusicList();
 }
 
+function rebuildShuffleOrder() {
+    musicShuffleOrder = [...Array(musicList.length).keys()];
+    for (let i = musicShuffleOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [musicShuffleOrder[i], musicShuffleOrder[j]] = [musicShuffleOrder[j], musicShuffleOrder[i]];
+    }
+    musicShufflePos = 0;
+}
 function initMusic() {
     const player = document.getElementById('music-player');
     initLocalMusicDB();
@@ -129,12 +139,7 @@ function initMusic() {
         document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
         document.getElementById('music-player').classList.remove('playing');
     });
-    musicShuffleOrder = [...Array(musicList.length).keys()];
-    for (let i = musicShuffleOrder.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [musicShuffleOrder[i], musicShuffleOrder[j]] = [musicShuffleOrder[j], musicShuffleOrder[i]];
-    }
-    musicShufflePos = 0;
+    rebuildShuffleOrder();
     // 初始化tab指示器位置
     setTimeout(updateMusicTabIndicator, 100);
 }
@@ -168,6 +173,56 @@ function getMusicCover(item) {
     const path = typeof item === 'string' ? item : item.src;
     const base = path.replace(/\.[^/.]+$/, '');
     return base + '.jpg'; // 自动找同名jpg封面
+}
+// 检测同名封面图是否存在（jpg/png），存在则返回路径，否则返回null
+function resolveMusicCover(item, callback) {
+    if (typeof item === 'object' && item.cover) {
+        callback(item.cover);
+        return;
+    }
+    const path = typeof item === 'string' ? item : item.src;
+    const base = path.replace(/\.[^/.]+$/, '');
+    const candidates = [base + '.jpg', base + '.png', base + '.jpeg'];
+    let idx = 0;
+    function tryNext() {
+        if (idx >= candidates.length) { callback(null); return; }
+        const img = new Image();
+        img.onload = () => callback(candidates[idx]);
+        img.onerror = () => { idx++; tryNext(); };
+        img.src = candidates[idx];
+    }
+    tryNext();
+}
+function playMusicAt(index) {
+    if (!audio || musicList.length === 0) return;
+    if (index < 0 || index >= musicList.length) return; // 越界保护
+    currentMusicIndex = index;
+    currentPlayingSource = 'online';
+    const item = musicList[index];
+    const src = getMusicSrc(item);
+    currentPlaySrc = src;
+    const displayName = getMusicName(item);
+    document.getElementById('musicTitle').textContent = displayName;
+    // 先尝试同名封面图作为初始封面，避免等待ID3解析期间显示空白
+    resolveMusicCover(item, function(coverPath) {
+        if (coverPath) setMusicCover(coverPath);
+    });
+    audio.src = src;
+    audio.play().then(() => {
+        // 播放成功后解析ID3（仅用于获取封面，歌名始终用文件名/item.name）
+        parseMusicMeta(src, function(meta) {
+            if (meta && meta.cover) {
+                setMusicCover(meta.cover);
+            }
+            // 歌名不使用ID3的meta.title，避免内嵌标签错误导致歌名错乱
+            document.getElementById('musicTitle').textContent = displayName;
+            updateMediaSession(displayName, '', meta && meta.cover ? meta.cover : '');
+            renderMusicList();
+        }); // 不强制重新解析，用缓存即可
+    }).catch((err) => {
+        console.error('播放失败:', err);
+        document.getElementById('musicTitle').textContent = displayName + ' (点击播放)';
+    });
 }
 function parseMusicMeta(src, callback, force) {
     if (musicMetaCache[src] && !force && musicMetaCache[src].cover) {
@@ -282,9 +337,19 @@ function playMusicAt(index) {
 }
 
 function toggleMusic() {
-    if (!audio || musicList.length === 0) return;
+    if (!audio) return;
+    const hasOnline = musicList.length > 0;
+    const hasLocal = localMusicList.length > 0;
+    if (!hasOnline && !hasLocal) return;
     if (currentMusicIndex === -1) {
-        playMusicAt(musicShuffleOrder[musicShufflePos]);
+        // 根据当前tab或可用列表选择首次播放源
+        if (currentMusicTab === 'local' && hasLocal) {
+            playLocalMusicAt(0);
+        } else if (hasOnline) {
+            playMusicAt(musicShuffleOrder[musicShufflePos]);
+        } else {
+            playLocalMusicAt(0);
+        }
         return;
     }
     if (isMusicPlaying) {
@@ -292,28 +357,49 @@ function toggleMusic() {
     } else {
         audio.play();
     }
-    // 播放状态由 audio 的 play/pause 事件自动同步
 }
 
 function nextMusic() {
     if (!audio) return;
-    if (currentPlayingSource === 'local' && localMusicList.length > 0) {
-        const nextIdx = (currentMusicIndex + 1) % localMusicList.length;
-        playLocalMusicAt(nextIdx);
-    } else if (musicList.length > 0) {
-        musicShufflePos = (musicShufflePos + 1) % musicShuffleOrder.length;
-        playMusicAt(musicShuffleOrder[musicShufflePos]);
+    if (currentPlayingSource === 'local') {
+        if (localMusicList.length > 0) {
+            const nextIdx = (currentMusicIndex + 1) % localMusicList.length;
+            playLocalMusicAt(nextIdx);
+        } else if (musicList.length > 0) {
+            currentPlayingSource = 'online';
+            musicShufflePos = (musicShufflePos + 1) % musicShuffleOrder.length;
+            playMusicAt(musicShuffleOrder[musicShufflePos]);
+        }
+    } else {
+        if (musicList.length > 0) {
+            musicShufflePos = (musicShufflePos + 1) % musicShuffleOrder.length;
+            playMusicAt(musicShuffleOrder[musicShufflePos]);
+        } else if (localMusicList.length > 0) {
+            currentPlayingSource = 'local';
+            playLocalMusicAt(0);
+        }
     }
 }
 
 function prevMusic() {
     if (!audio) return;
-    if (currentPlayingSource === 'local' && localMusicList.length > 0) {
-        const prevIdx = (currentMusicIndex - 1 + localMusicList.length) % localMusicList.length;
-        playLocalMusicAt(prevIdx);
-    } else if (musicList.length > 0) {
-        musicShufflePos = (musicShufflePos - 1 + musicShuffleOrder.length) % musicShuffleOrder.length;
-        playMusicAt(musicShuffleOrder[musicShufflePos]);
+    if (currentPlayingSource === 'local') {
+        if (localMusicList.length > 0) {
+            const prevIdx = (currentMusicIndex - 1 + localMusicList.length) % localMusicList.length;
+            playLocalMusicAt(prevIdx);
+        } else if (musicList.length > 0) {
+            currentPlayingSource = 'online';
+            musicShufflePos = (musicShufflePos - 1 + musicShuffleOrder.length) % musicShuffleOrder.length;
+            playMusicAt(musicShuffleOrder[musicShufflePos]);
+        }
+    } else {
+        if (musicList.length > 0) {
+            musicShufflePos = (musicShufflePos - 1 + musicShuffleOrder.length) % musicShuffleOrder.length;
+            playMusicAt(musicShuffleOrder[musicShufflePos]);
+        } else if (localMusicList.length > 0) {
+            currentPlayingSource = 'local';
+            playLocalMusicAt(localMusicList.length - 1);
+        }
     }
 }
 function toggleMusicList() {
@@ -333,10 +419,14 @@ function toggleMusicList() {
     }
 }
 let _isRenderingMusicList = false;
+let _musicListNeedsRerender = false;
 function renderMusicList() {
     const grid = document.getElementById('musicListGrid');
     if (!grid) return;
-    if (_isRenderingMusicList) return;
+    if (_isRenderingMusicList) {
+        _musicListNeedsRerender = true; // 标记需要重渲染，避免丢弃更新
+        return;
+    }
     _isRenderingMusicList = true;
     
     let html = '';
@@ -357,12 +447,12 @@ function renderMusicList() {
             src = getMusicSrc(item);
             const meta = musicMetaCache[src];
             coverUrl = (meta && meta.cover) ? meta.cover : '';
-            name = (meta && meta.title) ? meta.title : getMusicName(item);
+            name = getMusicName(item); // 始终用文件名，不用ID3 title避免标签错误
         } else {
             src = item.url;
             const meta = musicMetaCache[src];
             coverUrl = (meta && meta.cover) ? meta.cover : '';
-            name = (meta && meta.title) ? meta.title : item.name.replace(/\.[^/.]+$/, '');
+            name = item.name.replace(/\.[^/.]+$/, ''); // 本地歌曲也用文件名
         }
         const coverHtml = coverUrl 
             ? '<img src="' + coverUrl + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' 
@@ -393,6 +483,11 @@ function renderMusicList() {
     
     _isRenderingMusicList = false;
     updateMusicTabIndicator();
+    // 如果期间有重渲染请求，立即再渲染一次
+    if (_musicListNeedsRerender) {
+        _musicListNeedsRerender = false;
+        setTimeout(renderMusicList, 0);
+    }
     // 异步解析未缓存的封面（用setTimeout避免同步递归）
     setTimeout(() => {
         list.forEach((item) => {
@@ -403,8 +498,6 @@ function renderMusicList() {
         });
     }, 0);
 }
-
-let currentPlayingSource = 'online'; // 当前播放的来源
 
 function playMusicFromList(source, index) {
     currentPlayingSource = source;
@@ -418,23 +511,26 @@ function playMusicFromList(source, index) {
 
 function playLocalMusicAt(index) {
     if (!audio || localMusicList.length === 0) return;
+    if (index < 0 || index >= localMusicList.length) return; // 越界保护
     currentMusicIndex = index;
     currentPlayingSource = 'local';
     const song = localMusicList[index];
     currentPlaySrc = song.url;
+    const displayName = song.name.replace(/\.[^/.]+$/, '');
     setMusicCover(null);
-    document.getElementById('musicTitle').textContent = song.name.replace(/\.[^/.]+$/, '');
+    document.getElementById('musicTitle').textContent = displayName;
     audio.src = song.url;
     audio.play().then(() => {
         parseMusicMeta(song.url, function(meta) {
             if (meta) {
                 if (meta.cover) setMusicCover(meta.cover);
-                const name = meta.title || song.name.replace(/\.[^/.]+$/, '');
-                if (meta.title) document.getElementById('musicTitle').textContent = name + (meta.artist ? ' - ' + meta.artist : '');
-                updateMediaSession(name, meta.artist || '', meta.cover);
+                // 本地歌曲：歌名用文件名，仅追加艺术家信息
+                const title = displayName + (meta.artist ? ' - ' + meta.artist : '');
+                document.getElementById('musicTitle').textContent = title;
+                updateMediaSession(displayName, meta.artist || '', meta.cover);
             }
             renderMusicList();
-        }, true);
+        });
     }).catch((err) => {
         console.error('本地音乐播放失败:', err);
     });
@@ -727,25 +823,6 @@ function switchTab(tab) {
     updateTabIndicator();
     renderCollection();
 }
-function updateMediaSession(title, artist, cover) {
-    if (!('mediaSession' in navigator)) return;
-    const artwork = [];
-    if (cover) {
-        artwork.push({ src: cover, sizes: '512x512', type: 'image/jpeg' });
-    }
-    navigator.mediaSession.metadata = new MediaMetadata({
-        title: title || '未知歌曲',
-        artist: artist || '帅照合成大作战',
-        album: '音乐播放器',
-        artwork: artwork
-    });
-    // 媒体键事件
-    navigator.mediaSession.setActionHandler('play', () => { audio.play(); });
-    navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); });
-    navigator.mediaSession.setActionHandler('previoustrack', () => { prevMusic(); });
-    navigator.mediaSession.setActionHandler('nexttrack', () => { nextMusic(); });
-}
-
 function updateTabIndicator() {
     const indicator = document.getElementById('tabIndicator');
     const activeTab = document.querySelector('#collection .tab.active');
@@ -801,7 +878,8 @@ function getDownloadPath(cl, level) {
 function downloadPhoto(cl, level) {
     if (!isUnlocked(cl, level)) return;
     const src = getDownloadPath(cl, level);
-    const filename = 'dl_' + cl + level + '.jpg';
+    const ext = src.split('.').pop(); // 使用实际文件扩展名
+    const filename = 'dl_' + cl + level + '.' + ext;
     const a = document.createElement('a');
     a.href = src;
     a.download = filename;
@@ -851,6 +929,7 @@ let score = 0;
 let isDropping = false;
 let gameOver = false;
 let gameWon = false;
+let winCharacter = ''; // 记录通关角色，用于保存高清海报
 let dropX = 0;
 let dropLineY = 100;
 let charPrefix = 'ma';
@@ -1087,6 +1166,7 @@ function triggerWin(character) {
     if (gameWon) return;
     gameWon = true;
     gameOver = true;
+    winCharacter = character; // 记录通关角色，用于保存高清海报
     playWin();
     document.getElementById('winScore').textContent = score;
     document.getElementById('winPhoto').src = getPhotoPath(character, 7);
@@ -1299,8 +1379,9 @@ function toggleSound() {
 }
 
 function savePoster() {
-    const winPhoto = document.getElementById('winPhoto');
-    const src = winPhoto.src;
+    // 使用高清下载图，而非游戏展示用的低清图
+    const dlPath = winCharacter ? getDownloadPath(winCharacter, 7) : '';
+    const src = dlPath || document.getElementById('winPhoto').src;
     if (!src) return;
     const a = document.createElement('a');
     a.href = src;
