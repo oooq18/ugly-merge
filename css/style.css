@@ -1104,6 +1104,8 @@
             position: absolute;
             top: 4px;
             bottom: 4px;
+            left: 4px;
+            width: calc(50% - 6px);
             background: #fff;
             border-radius: 8px;
             transition: left 0.4s var(--ease-out-expo), width 0.4s var(--ease-out-expo);
