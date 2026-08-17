@@ -124,11 +124,13 @@ function initMusic() {
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
+        renderMusicList(); // 同步播放列表"正在播放"状态
     });
     audio.addEventListener('pause', () => {
         isMusicPlaying = false;
         document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
         document.getElementById('music-player').classList.remove('playing');
+        renderMusicList(); // 同步播放列表"点击播放"状态
     });
     audio.addEventListener('ended', () => {
         nextMusic();
@@ -140,6 +142,15 @@ function initMusic() {
         document.getElementById('music-player').classList.remove('playing');
     });
     rebuildShuffleOrder();
+    // 预解析所有在线歌曲的ID3封面（后台异步，不阻塞UI），播放时秒开
+    setTimeout(function() {
+        musicList.forEach(function(item) {
+            const src = getMusicSrc(item);
+            if (!musicMetaCache[src]) {
+                parseMusicMeta(src, function() {});
+            }
+        });
+    }, 500);
     // 初始化tab指示器位置
     setTimeout(updateMusicTabIndicator, 100);
 }
@@ -200,32 +211,37 @@ function playMusicAt(index) {
     currentPlayingSource = 'online';
     const item = musicList[index];
     const src = getMusicSrc(item);
-    currentPlaySrc = src;
+    currentPlaySrc = src; // 更新当前播放src，用于竞态保护
     const displayName = getMusicName(item);
+    // 立即设置歌名（同步，不闪烁）
     document.getElementById('musicTitle').textContent = displayName;
-    // 先尝试同名封面图作为初始封面，避免等待ID3解析期间显示空白
+    setMusicCover(null); // 先清空旧封面
+    // 1. 尝试同名封面图（最快，本地文件直接加载）
     resolveMusicCover(item, function(coverPath) {
+        if (currentPlaySrc !== src) return; // 竞态保护：已切歌则丢弃
         if (coverPath) setMusicCover(coverPath);
     });
+    // 2. 立即开始解析ID3封面（不等audio.play成功，提前加载）
+    parseMusicMeta(src, function(meta) {
+        if (currentPlaySrc !== src) return; // 竞态保护：已切歌则丢弃
+        if (meta && meta.cover) {
+            setMusicCover(meta.cover); // ID3封面优先级更高（内嵌高清封面）
+        }
+        updateMediaSession(displayName, '', meta && meta.cover ? meta.cover : '');
+    });
+    // 3. 设置音频源并播放
     audio.src = src;
     audio.play().then(() => {
-        // 播放成功后解析ID3（仅用于获取封面，歌名始终用文件名/item.name）
-        parseMusicMeta(src, function(meta) {
-            if (meta && meta.cover) {
-                setMusicCover(meta.cover);
-            }
-            // 歌名不使用ID3的meta.title，避免内嵌标签错误导致歌名错乱
-            document.getElementById('musicTitle').textContent = displayName;
-            updateMediaSession(displayName, '', meta && meta.cover ? meta.cover : '');
-            renderMusicList();
-        }); // 不强制重新解析，用缓存即可
+        if (currentPlaySrc !== src) return; // 竞态保护
+        renderMusicList(); // 更新播放列表高亮
     }).catch((err) => {
+        if (currentPlaySrc !== src) return;
         console.error('播放失败:', err);
         document.getElementById('musicTitle').textContent = displayName + ' (点击播放)';
     });
 }
 function parseMusicMeta(src, callback, force) {
-    if (musicMetaCache[src] && !force && musicMetaCache[src].cover) {
+    if (musicMetaCache[src] && !force) {
         callback(musicMetaCache[src]);
         return;
     }
@@ -306,34 +322,6 @@ function setMusicCover(coverPath) {
         coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
     };
     img.src = coverPath;
-}
-
-function playMusicAt(index) {
-    if (!audio || musicList.length === 0) return;
-    currentMusicIndex = index;
-    currentPlayingSource = 'online';
-    const item = musicList[index];
-    const src = getMusicSrc(item);
-    currentPlaySrc = src;
-    setMusicCover(null);
-    document.getElementById('musicTitle').textContent = getMusicName(item);
-    audio.src = src;
-    audio.play().then(() => {
-        // 播放成功后解析ID3
-        parseMusicMeta(src, function(meta) {
-            if (meta) {
-                if (meta.cover) setMusicCover(meta.cover);
-                const name = meta.title || getMusicName(item);
-                document.getElementById('musicTitle').textContent = name + (meta.artist ? ' - ' + meta.artist : '');
-                // 更新系统媒体控制中心
-                updateMediaSession(name, meta.artist || '', meta.cover);
-            }
-            renderMusicList();
-        }, true); // force=true 强制重新解析
-    }).catch((err) => {
-        console.error('播放失败:', err);
-        document.getElementById('musicTitle').textContent = getMusicName(item) + ' (点击播放)';
-    });
 }
 
 function toggleMusic() {
@@ -515,23 +503,26 @@ function playLocalMusicAt(index) {
     currentMusicIndex = index;
     currentPlayingSource = 'local';
     const song = localMusicList[index];
-    currentPlaySrc = song.url;
+    const src = song.url;
+    currentPlaySrc = src; // 竞态保护用
     const displayName = song.name.replace(/\.[^/.]+$/, '');
     setMusicCover(null);
     document.getElementById('musicTitle').textContent = displayName;
-    audio.src = song.url;
+    // 立即开始解析ID3（不等play成功）
+    parseMusicMeta(src, function(meta) {
+        if (currentPlaySrc !== src) return; // 竞态保护
+        if (meta && meta.cover) setMusicCover(meta.cover);
+        // 本地歌曲：歌名用文件名，仅追加艺术家信息
+        const title = displayName + (meta && meta.artist ? ' - ' + meta.artist : '');
+        document.getElementById('musicTitle').textContent = title;
+        updateMediaSession(displayName, meta && meta.artist ? meta.artist : '', meta && meta.cover ? meta.cover : '');
+    });
+    audio.src = src;
     audio.play().then(() => {
-        parseMusicMeta(song.url, function(meta) {
-            if (meta) {
-                if (meta.cover) setMusicCover(meta.cover);
-                // 本地歌曲：歌名用文件名，仅追加艺术家信息
-                const title = displayName + (meta.artist ? ' - ' + meta.artist : '');
-                document.getElementById('musicTitle').textContent = title;
-                updateMediaSession(displayName, meta.artist || '', meta.cover);
-            }
-            renderMusicList();
-        });
+        if (currentPlaySrc !== src) return;
+        renderMusicList();
     }).catch((err) => {
+        if (currentPlaySrc !== src) return;
         console.error('本地音乐播放失败:', err);
     });
 }
