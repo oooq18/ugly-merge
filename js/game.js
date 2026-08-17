@@ -14,6 +14,7 @@ let audio = null;
 let currentMusicIndex = -1;
 let currentPlaySrc = ''; // 当前播放的src（相对路径或blob URL）
 let isMusicPlaying = false;
+let musicWaitingForInteraction = false; // 自动播放被浏览器阻止时，等用户第一次交互后恢复
 let currentPlayingSource = 'online'; // 当前播放的来源 online / local
 let musicShuffleOrder = [];
 let musicShufflePos = 0;
@@ -138,9 +139,20 @@ function initMusic() {
     audio.addEventListener('error', (e) => {
         console.log('音乐加载失败:', e);
         isMusicPlaying = false;
+        musicWaitingForInteraction = false;
         document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
         document.getElementById('music-player').classList.remove('playing');
     });
+    // 自动播放被浏览器阻止时，用户第一次交互（点击/触摸/按键）后恢复播放
+    const resumeOnInteract = () => {
+        if (musicWaitingForInteraction && audio && currentMusicIndex >= 0) {
+            musicWaitingForInteraction = false;
+            audio.play().catch(() => { musicWaitingForInteraction = true; });
+        }
+    };
+    document.addEventListener('click', resumeOnInteract);
+    document.addEventListener('touchstart', resumeOnInteract);
+    document.addEventListener('keydown', resumeOnInteract);
     rebuildShuffleOrder();
     // 预解析所有在线歌曲的ID3封面（后台异步，不阻塞UI），播放时秒开
     setTimeout(function() {
@@ -150,6 +162,12 @@ function initMusic() {
                 parseMusicMeta(src, function() {});
             }
         });
+    }, 300);
+    // 自动随机播放第一首（浏览器可能阻止，被阻止时等用户交互后恢复）
+    setTimeout(function() {
+        if (musicList.length > 0 && currentMusicIndex === -1) {
+            playMusicAt(musicShuffleOrder[musicShufflePos]);
+        }
     }, 500);
     // 初始化tab指示器位置
     setTimeout(updateMusicTabIndicator, 100);
@@ -231,13 +249,16 @@ function playMusicAt(index) {
     });
     // 3. 设置音频源并播放
     audio.src = src;
+    musicWaitingForInteraction = false;
     audio.play().then(() => {
         if (currentPlaySrc !== src) return; // 竞态保护
         renderMusicList(); // 更新播放列表高亮
     }).catch((err) => {
         if (currentPlaySrc !== src) return;
-        console.error('播放失败:', err);
-        document.getElementById('musicTitle').textContent = displayName + ' (点击播放)';
+        // 自动播放被浏览器策略阻止，等用户第一次交互后恢复
+        // （进入游戏后点击/触摸也会触发恢复，不中断加载）
+        musicWaitingForInteraction = true;
+        console.log('自动播放被阻止，等待用户交互后播放:', displayName);
     });
 }
 function parseMusicMeta(src, callback, force) {
@@ -518,12 +539,15 @@ function playLocalMusicAt(index) {
         updateMediaSession(displayName, meta && meta.artist ? meta.artist : '', meta && meta.cover ? meta.cover : '');
     });
     audio.src = src;
+    musicWaitingForInteraction = false;
     audio.play().then(() => {
         if (currentPlaySrc !== src) return;
         renderMusicList();
     }).catch((err) => {
         if (currentPlaySrc !== src) return;
-        console.error('本地音乐播放失败:', err);
+        // 自动播放被阻止，等用户交互后恢复
+        musicWaitingForInteraction = true;
+        console.log('本地音乐自动播放被阻止，等待用户交互:', displayName);
     });
 }
 
@@ -640,12 +664,14 @@ async function bootApp() {
     try {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('loading').classList.add('active');
+        // 提前初始化音乐，和图片预加载并行，不阻塞
+        initMusic();
+        updateMusicPlayerVisibility();
         await preloadPhotos();
         document.getElementById('loading').classList.remove('active');
         document.getElementById('home').classList.add('active');
         currentScreen = 'home';
         updateLevelStatus();
-        initMusic();
         updateMusicPlayerVisibility();
     } catch (e) {
         console.error('启动失败:', e);
