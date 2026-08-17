@@ -22,6 +22,7 @@ const musicMetaCache = {}; // 缓存ID3解析结果
 let localMusicList = []; // 本地添加的歌曲
 let currentMusicTab = 'online'; // 当前播放列表tab: online / local
 let db = null; // IndexedDB用于持久化本地音乐
+let currentScreen = 'home'; // 当前屏幕（提前声明，避免bootApp中TDZ错误）
 
 // 初始化IndexedDB
 function initLocalMusicDB() {
@@ -683,7 +684,6 @@ bootApp();
 // ============================================================
 // 3. 全局变量 & 工具
 // ============================================================
-let currentScreen = 'home';
 let currentCharacter = 'ma';
 let soundEnabled = true;
 let audioCtx = null;
