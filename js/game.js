@@ -159,7 +159,8 @@ function getMusicNameBySrc(src) {
     return decodeURIComponent(filename.replace(/\.[^/.]+$/, ''));
 }
 function getMusicSrc(item) {
-    return typeof item === 'string' ? item : item.src;
+    const raw = typeof item === 'string' ? item : item.src;
+    return encodeURI(raw); // 中文文件名需要URL编码
 }
 function getMusicCover(item) {
     if (typeof item === 'object' && item.cover) return item.cover;
