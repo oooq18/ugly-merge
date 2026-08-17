@@ -136,7 +136,7 @@ function initMusic() {
     }
     musicShufflePos = 0;
     // 初始化tab指示器位置
-    setTimeout(updateTabIndicator, 100);
+    setTimeout(updateMusicTabIndicator, 100);
 }
 
 function updateMusicPlayerVisibility() {
@@ -390,7 +390,7 @@ function renderMusicList() {
     }
     
     _isRenderingMusicList = false;
-    updateTabIndicator();
+    updateMusicTabIndicator();
     // 异步解析未缓存的封面（用setTimeout避免同步递归）
     setTimeout(() => {
         list.forEach((item) => {
@@ -457,8 +457,8 @@ function updateMediaSession(title, artist, cover) {
     navigator.mediaSession.setActionHandler('nexttrack', () => { nextMusic(); });
 }
 
-function updateTabIndicator() {
-    const indicator = document.getElementById('tabIndicator');
+function updateMusicTabIndicator() {
+    const indicator = document.getElementById('musicTabIndicator');
     const activeTab = document.querySelector('.music-tab.active');
     if (!indicator || !activeTab) return;
     const tabsRect = activeTab.parentElement.getBoundingClientRect();
@@ -472,7 +472,7 @@ function switchMusicTab(tab) {
     document.querySelectorAll('.music-tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === tab);
     });
-    updateTabIndicator();
+    updateMusicTabIndicator();
     const addBtn = document.querySelector('.music-add-btn');
     if (addBtn) addBtn.style.display = (tab === 'local') ? 'flex' : 'none';
     renderMusicList();
@@ -746,8 +746,8 @@ function updateMediaSession(title, artist, cover) {
 
 function updateTabIndicator() {
     const indicator = document.getElementById('tabIndicator');
-    const activeTab = document.querySelector('.tab.active');
-    const tabsContainer = document.querySelector('.tabs');
+    const activeTab = document.querySelector('#collection .tab.active');
+    const tabsContainer = document.querySelector('#collection .tabs');
     if (!indicator || !activeTab || !tabsContainer) return;
     const containerRect = tabsContainer.getBoundingClientRect();
     const tabRect = activeTab.getBoundingClientRect();
@@ -1310,6 +1310,7 @@ function savePoster() {
 
 window.addEventListener('resize', () => {
     if (currentScreen === 'game') { resizeCanvas(); }
+    updateMusicTabIndicator();
     updateTabIndicator();
 });
 
