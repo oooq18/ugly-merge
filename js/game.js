@@ -3,7 +3,7 @@
 // ============================================================
 // 把音乐文件放到 assets/music/ 文件夹，然后在这里添加文件名
 // 支持格式：mp3 / wav / ogg / flac / m4a
-const musicList = [
+let musicList = [
     // 支持两种格式：
     // 1. 字符串：'assets/music/歌曲.mp3'（自动找同名封面 歌曲.jpg/png）
     // 2. 对象：{src: 'assets/music/歌曲.mp3', cover: 'assets/music/封面.jpg', name: '自定义歌名'}
@@ -74,13 +74,10 @@ function addLocalSongs(files) {
     const audioFiles = Array.from(files).filter(f => 
         /\.(mp3|wav|ogg|flac|m4a|aac)$/i.test(f.name)
     );
-    let count = 0;
-    audioFiles.forEach(async (file) => {
-        const song = await saveLocalMusic(file);
-        if (song) count++;
-        if (count === audioFiles.length) {
-            renderMusicList();
-        }
+    if (audioFiles.length === 0) return;
+    Promise.all(audioFiles.map(f => saveLocalMusic(f))).then(results => {
+        results.forEach(song => { if (song) localMusicList.push(song); });
+        renderMusicList();
     });
 }
 
@@ -89,6 +86,19 @@ function deleteLocalSong(id) {
     const tx = db.transaction('songs', 'readwrite');
     tx.objectStore('songs').delete(id);
     localMusicList = localMusicList.filter(s => s.id !== id);
+    if (currentPlayingSource === 'local') {
+        currentMusicIndex = -1;
+        audio.pause();
+    }
+    renderMusicList();
+}
+
+function deleteOnlineSong(index) {
+    musicList.splice(index, 1);
+    if (currentPlayingSource === 'online') {
+        currentMusicIndex = -1;
+        audio.pause();
+    }
     renderMusicList();
 }
 
@@ -158,76 +168,26 @@ function getMusicCover(item) {
     return base + '.jpg'; // 自动找同名jpg封面
 }
 function parseMusicMeta(src, callback, force) {
-    // 调试：显示jsmediatags是否存在
-    let dbg = document.getElementById('id3Debug');
-    if (!dbg) {
-        dbg = document.createElement('div');
-        dbg.id = 'id3Debug';
-        dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#00f;color:#fff;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
-        document.body.appendChild(dbg);
-    }
-    dbg.textContent = 'parseMusicMeta被调用, jsmediatags类型: ' + typeof jsmediatags + ', force: ' + force;
     if (musicMetaCache[src] && !force && musicMetaCache[src].cover) {
-        dbg.textContent += ' | 从缓存读取';
         callback(musicMetaCache[src]);
         return;
     }
     if (typeof jsmediatags === 'undefined') {
-        dbg.textContent += ' | jsmediatags未定义，直接返回';
-        console.log('jsmediatags未加载');
         musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
         return;
     }
     try {
-        // 转成绝对URL，jsmediatags需要绝对URL才能用XhrFileReader
-        const absSrc = src.startsWith('http') ? src : new URL(src, window.location.origin).href;
-        dbg.textContent += ' | 绝对URL: ' + absSrc;
-        jsmediatags.read(absSrc, {
-            onSuccess: function(tag) {
-                console.log('ID3解析成功，所有字段:', JSON.stringify(tag.tags));
-                const fieldNames = Object.keys(tag.tags).join(',');
-                // 把所有字段显示在页面顶部
-                let debugDiv = document.getElementById('id3Debug');
-                if (!debugDiv) {
-                    debugDiv = document.createElement('div');
-                    debugDiv.id = 'id3Debug';
-                    debugDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
-                    document.body.appendChild(debugDiv);
-                }
-                debugDiv.textContent = 'ID3字段: ' + fieldNames + ' | picture存在: ' + !!tag.tags.picture + ' | image存在: ' + !!tag.tags.image;
-                // 打印完整的tag.tags
-                try { debugDiv.textContent += ' | 完整: ' + JSON.stringify(tag.tags).substring(0, 200); } catch(e) {}
-                const hasPic = !!(tag.tags.picture || tag.tags.image);
-                const picInfo = tag.tags.picture ? ('pic数据类型:' + typeof tag.tags.picture.data + ' 长度:' + (tag.tags.picture.data ? tag.tags.picture.data.length : '无') + ' format:' + tag.tags.picture.format) : '无picture';
-                console.log('有封面字段:', hasPic, '字段列表:', fieldNames, picInfo);
-                // 测试：直接在页面上显示封面
-                if (tag.tags.picture && tag.tags.picture.data) {
-                    try {
-                        const dataArr = Array.isArray(tag.tags.picture.data) ? tag.tags.picture.data : Array.from(tag.tags.picture.data);
-                        const uint8 = new Uint8Array(dataArr);
-                        let binary = '';
-                        for (let i = 0; i < uint8.length; i += 8192) {
-                            binary += String.fromCharCode.apply(null, uint8.subarray(i, i + 8192));
-                        }
-                        const testImg = document.createElement('img');
-                        testImg.src = 'data:' + (tag.tags.picture.format || 'image/jpeg') + ';base64,' + btoa(binary);
-                        testImg.style.cssText = 'position:fixed;top:50px;left:10px;width:100px;height:100px;z-index:99999;border:2px solid red;';
-                        document.body.appendChild(testImg);
-                        console.log('测试封面已添加到页面');
-                    } catch(e) {
-                        console.error('测试封面创建失败:', e);
-                    }
-                }
+        const doRead = (input) => {
+            jsmediatags.read(input, {
+                onSuccess: function(tag) {
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
                     cover: null
                 };
-                // 兼容MP3(ID3)和FLAC(Vorbis)的封面字段
                 let picture = tag.tags.picture;
                 if (!picture && tag.tags.image) picture = tag.tags.image;
-                // FLAC的metadataBlock可能有不同结构
                 if (!picture && tag.tags.metadataBlock) {
                     for (let i = 0; i < tag.tags.metadataBlock.length; i++) {
                         if (tag.tags.metadataBlock[i].picture) {
@@ -236,61 +196,37 @@ function parseMusicMeta(src, callback, force) {
                         }
                     }
                 }
-                if (picture) {
+                if (picture && picture.data) {
                     try {
-                        let picData = picture.data;
-                        if (!picData && picture.image) picData = picture.image.data;
-                        if (picData) {
-                            const dataArr = Array.isArray(picData) ? picData : Array.from(picData);
-                            const uint8 = new Uint8Array(dataArr);
-                            // 用data URL，分块转换避免栈溢出
-                            let binary = '';
-                            const chunkSize = 8192;
-                            for (let i = 0; i < uint8.length; i += chunkSize) {
-                                binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunkSize));
-                            }
-                            const base64 = btoa(binary);
-                            const mime = picture.format || picture.mime || 'image/jpeg';
-                            meta.cover = 'data:' + mime + ';base64,' + base64;
-                            console.log('封面解析成功, 大小:', uint8.length, '格式:', mime);
-
-                        } else {
-                            console.log('找到picture但没有data字段:', Object.keys(picture));
+                        const dataArr = Array.isArray(picture.data) ? picture.data : Array.from(picture.data);
+                        const uint8 = new Uint8Array(dataArr);
+                        let binary = '';
+                        for (let i = 0; i < uint8.length; i += 8192) {
+                            binary += String.fromCharCode.apply(null, uint8.subarray(i, i + 8192));
                         }
-                    } catch(e) {
-                        console.error('封面转换失败:', e);
-                    }
-                } else {
-                    console.log('标签中没有封面字段，可用字段:', Object.keys(tag.tags));
+                        const mime = picture.format || picture.mime || 'image/jpeg';
+                        meta.cover = 'data:' + mime + ';base64,' + btoa(binary);
+                    } catch(e) {}
                 }
                 musicMetaCache[src] = meta;
                 callback(meta);
             },
-            onError: function(error) {
-                console.error('ID3解析失败:', error);
-                // 显示错误信息
-                let errDiv = document.getElementById('id3Debug');
-                if (!errDiv) {
-                    errDiv = document.createElement('div');
-                    errDiv.id = 'id3Debug';
-                    errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f00;color:#fff;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
-                    document.body.appendChild(errDiv);
-                }
-                errDiv.textContent = 'ID3解析失败: ' + JSON.stringify(error).substring(0, 200);
+            onError: function() {
                 musicMetaCache[src] = {title: '', artist: '', cover: null};
                 callback(null);
             }
-        });
-    } catch(e) {
-        console.error('parseMusicMeta异常:', e);
-        let errDiv2 = document.getElementById('id3Debug');
-        if (!errDiv2) {
-            errDiv2 = document.createElement('div');
-            errDiv2.id = 'id3Debug';
-            errDiv2.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f00;color:#fff;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
-            document.body.appendChild(errDiv2);
+            });
+        };
+        if (src.startsWith('blob:')) {
+            fetch(src).then(r => r.blob()).then(blob => doRead(blob)).catch(() => {
+                musicMetaCache[src] = {title: '', artist: '', cover: null};
+                callback(null);
+            });
+        } else {
+            const absSrc = src.startsWith('http') || src.startsWith('data:') ? src : new URL(src, window.location.origin).href;
+            doRead(absSrc);
         }
-        errDiv2.textContent = 'parseMusicMeta异常: ' + e.message;
+    } catch(e) {
         musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
     }
@@ -317,26 +253,15 @@ function setMusicCover(coverPath) {
 
 function playMusicAt(index) {
     if (!audio || musicList.length === 0) return;
-    // 调试
-    let dbg2 = document.getElementById('id3Debug');
-    if (!dbg2) {
-        dbg2 = document.createElement('div');
-        dbg2.id = 'id3Debug';
-        dbg2.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f0f;color:#000;font-size:12px;padding:5px;z-index:99999;word-break:break-all;';
-        document.body.appendChild(dbg2);
-    }
-    dbg2.textContent = 'playMusicAt被调用, index=' + index;
     currentMusicIndex = index;
     currentPlayingSource = 'online';
     const item = musicList[index];
     const src = getMusicSrc(item);
     currentPlaySrc = src;
-    console.log('开始播放:', src);
     setMusicCover(null);
     document.getElementById('musicTitle').textContent = getMusicName(item);
     audio.src = src;
     audio.play().then(() => {
-        dbg2.textContent += ' | play成功，调用parseMusicMeta';
         // 播放成功后解析ID3
         parseMusicMeta(src, function(meta) {
             if (meta) {
@@ -347,34 +272,23 @@ function playMusicAt(index) {
             renderMusicList();
         }, true); // force=true 强制重新解析
     }).catch((err) => {
-        dbg2.textContent += ' | play失败: ' + err.message;
         console.error('播放失败:', err);
         document.getElementById('musicTitle').textContent = getMusicName(item) + ' (点击播放)';
     });
 }
 
 function toggleMusic() {
-    let dbg3 = document.getElementById('id3Debug');
-    if (!dbg3) {
-        dbg3 = document.createElement('div');
-        dbg3.id = 'id3Debug';
-        dbg3.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff0;color:#000;font-size:14px;padding:8px;z-index:999999;word-break:break-all;font-weight:bold;';
-        document.body.appendChild(dbg3);
-    }
-    dbg3.textContent = 'toggleMusic被调用, currentMusicIndex=' + currentMusicIndex + ', isMusicPlaying=' + isMusicPlaying + ', audio存在=' + !!audio;
-    if (!audio || musicList.length === 0) { dbg3.textContent += ' | 直接返回'; return; }
+    if (!audio || musicList.length === 0) return;
     if (currentMusicIndex === -1) {
-        dbg3.textContent += ' | 调用playMusicAt';
         playMusicAt(musicShuffleOrder[musicShufflePos]);
         return;
     }
     if (isMusicPlaying) {
-        dbg3.textContent += ' | 暂停';
         audio.pause();
     } else {
-        dbg3.textContent += ' | 播放';
         audio.play();
     }
+    // 播放状态由 audio 的 play/pause 事件自动同步
 }
 
 function nextMusic() {
@@ -453,7 +367,7 @@ function renderMusicList() {
             : '<span style="font-size:18px;">♫</span>';
         const delBtn = currentMusicTab === 'local' 
             ? '<div class="mli-delete" onclick="event.stopPropagation();deleteLocalSong(\'' + item.id + '\')">✕</div>' 
-            : '';
+            : '<div class="mli-delete" onclick="event.stopPropagation();deleteOnlineSong(' + i + ')">✕</div>';
         html += '<div class="music-list-item' + (isPlaying ? ' active' : '') + '" onclick="playMusicFromList(\'' + currentMusicTab + '\',' + i + ')">' +
             '<div class="mli-cover">' + coverHtml + '</div>' +
             '<div class="mli-info"><div class="mli-name">' + name + '</div>' +
@@ -491,7 +405,6 @@ function playLocalMusicAt(index) {
     currentPlayingSource = 'local';
     const song = localMusicList[index];
     currentPlaySrc = song.url;
-    console.log('播放本地音乐:', song.name);
     setMusicCover(null);
     document.getElementById('musicTitle').textContent = song.name.replace(/\.[^/.]+$/, '');
     audio.src = song.url;

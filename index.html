@@ -179,7 +179,7 @@
                 <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
                 添加本地歌曲
             </div>
-            <input type="file" id="localMusicInput" accept="audio/*" multiple style="display:none" onchange="addLocalSongs(this.files);this.value=''">
+            <input type="file" id="localMusicInput" accept=".mp3,.wav,.ogg,.flac,.m4a,.aac,audio/mpeg,audio/wav,audio/ogg,audio/flac,audio/mp4,audio/aac,audio/x-flac" multiple style="display:none" onchange="addLocalSongs(this.files);this.value=''">
         </div>
     </div>
 
