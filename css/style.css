@@ -1089,48 +1089,49 @@
             to { opacity: 0; }
         }
 
-        /* 播放列表tab切换 */
+        /* 播放列表tab切换（和图鉴一致风格） */
         .music-tabs {
             position: relative;
             display: flex;
-            gap: 4px;
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            justify-content: center;
-            background: rgba(255,255,255,0.02);
-        }
-        .tab-indicator {
-            position: absolute;
-            bottom: 12px;
-            height: calc(100% - 24px);
+            gap: 0;
+            margin: 12px 16px;
+            background: #141414;
             border-radius: 10px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08));
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
-            transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1), width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            pointer-events: none;
+            padding: 4px;
+            justify-content: center;
+        }
+        .music-tabs .tab-indicator {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            background: #fff;
+            border-radius: 8px;
+            transition: left 0.4s var(--ease-out-expo), width 0.4s var(--ease-out-expo);
             z-index: 0;
+            box-shadow: 0 2px 8px rgba(255,255,255,0.2);
         }
         .music-tab {
             position: relative;
             z-index: 1;
-            padding: 8px 24px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 500;
-            color: rgba(255,255,255,0.45);
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #777;
+            border-radius: 8px;
             cursor: pointer;
-            transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            letter-spacing: 0.5px;
+            transition: color 0.3s var(--ease-out-quart);
         }
         .music-tab.active {
-            color: #fff;
+            color: #0a0a0a;
         }
         .music-tab:hover:not(.active) {
-            color: rgba(255,255,255,0.75);
+            color: #aaa;
         }
         /* 列表高度过渡 */
         .music-list-grid {
-            transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: height 0.4s var(--ease-out-expo);
             overflow: hidden;
         }
         /* 添加歌曲按钮 */

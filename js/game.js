@@ -270,6 +270,8 @@ function playMusicAt(index) {
                 if (meta.cover) setMusicCover(meta.cover);
                 const name = meta.title || getMusicName(item);
                 document.getElementById('musicTitle').textContent = name + (meta.artist ? ' - ' + meta.artist : '');
+                // 更新系统媒体控制中心
+                updateMediaSession(name, meta.artist || '', meta.cover);
             }
             renderMusicList();
         }, true); // force=true 强制重新解析
@@ -425,13 +427,34 @@ function playLocalMusicAt(index) {
         parseMusicMeta(song.url, function(meta) {
             if (meta) {
                 if (meta.cover) setMusicCover(meta.cover);
-                if (meta.title) document.getElementById('musicTitle').textContent = meta.title + (meta.artist ? ' - ' + meta.artist : '');
+                const name = meta.title || song.name.replace(/\.[^/.]+$/, '');
+                if (meta.title) document.getElementById('musicTitle').textContent = name + (meta.artist ? ' - ' + meta.artist : '');
+                updateMediaSession(name, meta.artist || '', meta.cover);
             }
             renderMusicList();
         }, true);
     }).catch((err) => {
         console.error('本地音乐播放失败:', err);
     });
+}
+
+function updateMediaSession(title, artist, cover) {
+    if (!('mediaSession' in navigator)) return;
+    const artwork = [];
+    if (cover) {
+        artwork.push({ src: cover, sizes: '512x512', type: 'image/jpeg' });
+    }
+    navigator.mediaSession.metadata = new MediaMetadata({
+        title: title || '未知歌曲',
+        artist: artist || '帅照合成大作战',
+        album: '音乐播放器',
+        artwork: artwork
+    });
+    // 媒体键事件
+    navigator.mediaSession.setActionHandler('play', () => { audio.play(); });
+    navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => { prevMusic(); });
+    navigator.mediaSession.setActionHandler('nexttrack', () => { nextMusic(); });
 }
 
 function updateTabIndicator() {
@@ -702,6 +725,25 @@ function switchTab(tab) {
     updateTabIndicator();
     renderCollection();
 }
+function updateMediaSession(title, artist, cover) {
+    if (!('mediaSession' in navigator)) return;
+    const artwork = [];
+    if (cover) {
+        artwork.push({ src: cover, sizes: '512x512', type: 'image/jpeg' });
+    }
+    navigator.mediaSession.metadata = new MediaMetadata({
+        title: title || '未知歌曲',
+        artist: artist || '帅照合成大作战',
+        album: '音乐播放器',
+        artwork: artwork
+    });
+    // 媒体键事件
+    navigator.mediaSession.setActionHandler('play', () => { audio.play(); });
+    navigator.mediaSession.setActionHandler('pause', () => { audio.pause(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => { prevMusic(); });
+    navigator.mediaSession.setActionHandler('nexttrack', () => { nextMusic(); });
+}
+
 function updateTabIndicator() {
     const indicator = document.getElementById('tabIndicator');
     const activeTab = document.querySelector('.tab.active');
