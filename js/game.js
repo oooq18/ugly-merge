@@ -234,19 +234,23 @@ function playMusicAt(index) {
     const displayName = getMusicName(item);
     // 立即设置歌名（同步，不闪烁）
     document.getElementById('musicTitle').textContent = displayName;
+    const artistEl = document.getElementById('musicArtist');
+    if (artistEl) artistEl.textContent = '';
     setMusicCover(null); // 先清空旧封面
     // 1. 尝试同名封面图（最快，本地文件直接加载）
     resolveMusicCover(item, function(coverPath) {
         if (currentPlaySrc !== src) return; // 竞态保护：已切歌则丢弃
         if (coverPath) setMusicCover(coverPath);
     });
-    // 2. 立即开始解析ID3封面（不等audio.play成功，提前加载）
+    // 2. 立即开始解析ID3（封面/歌手/歌词）
     parseMusicMeta(src, function(meta) {
         if (currentPlaySrc !== src) return; // 竞态保护：已切歌则丢弃
-        if (meta && meta.cover) {
-            setMusicCover(meta.cover); // ID3封面优先级更高（内嵌高清封面）
+        if (meta) {
+            if (meta.cover) setMusicCover(meta.cover);
+            if (meta.artist && artistEl) artistEl.textContent = meta.artist;
+            updateLyricsDisplay(displayName, meta);
         }
-        updateMediaSession(displayName, '', meta && meta.cover ? meta.cover : '');
+        updateMediaSession(displayName, meta && meta.artist ? meta.artist : '', meta && meta.cover ? meta.cover : '');
     });
     // 3. 设置音频源并播放
     audio.src = src;
@@ -268,7 +272,7 @@ function parseMusicMeta(src, callback, force) {
         return;
     }
     if (typeof jsmediatags === 'undefined') {
-        musicMetaCache[src] = {title: '', artist: '', cover: null};
+        musicMetaCache[src] = {title: '', artist: '', album: '', lyrics: '', cover: null};
         callback(null);
         return;
     }
@@ -279,8 +283,29 @@ function parseMusicMeta(src, callback, force) {
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
+                    album: tag.tags.album || '',
+                    lyrics: '',
                     cover: null
                 };
+                // 解析内嵌歌词（ID3v2 USLT帧）
+                let lyrics = tag.tags.USLT || tag.tags.lyrics || tag.tags.Lyrics;
+                if (lyrics) {
+                    if (typeof lyrics === 'object') {
+                        if (Array.isArray(lyrics)) {
+                            for (let i = 0; i < lyrics.length; i++) {
+                                const t = lyrics[i];
+                                if (t && (t.text || t.data)) {
+                                    meta.lyrics = t.text || t.data || '';
+                                    break;
+                                }
+                            }
+                        } else {
+                            meta.lyrics = lyrics.text || lyrics.data || '';
+                        }
+                    } else {
+                        meta.lyrics = lyrics;
+                    }
+                }
                 let picture = tag.tags.picture;
                 if (!picture && tag.tags.image) picture = tag.tags.image;
                 if (!picture && tag.tags.metadataBlock) {
@@ -307,14 +332,14 @@ function parseMusicMeta(src, callback, force) {
                 callback(meta);
             },
             onError: function() {
-                musicMetaCache[src] = {title: '', artist: '', cover: null};
+                musicMetaCache[src] = {title: '', artist: '', album: '', lyrics: '', cover: null};
                 callback(null);
             }
             });
         };
         if (src.startsWith('blob:')) {
             fetch(src).then(r => r.blob()).then(blob => doRead(blob)).catch(() => {
-                musicMetaCache[src] = {title: '', artist: '', cover: null};
+                musicMetaCache[src] = {title: '', artist: '', album: '', lyrics: '', cover: null};
                 callback(null);
             });
         } else {
@@ -322,7 +347,7 @@ function parseMusicMeta(src, callback, force) {
             doRead(absSrc);
         }
     } catch(e) {
-        musicMetaCache[src] = {title: '', artist: '', cover: null};
+        musicMetaCache[src] = {title: '', artist: '', album: '', lyrics: '', cover: null};
         callback(null);
     }
 }
@@ -420,6 +445,8 @@ function toggleMusicList() {
         setTimeout(() => {
             panel.classList.remove('show');
             panel.classList.remove('closing');
+            // 关闭时重置为播放列表视图
+            if (_showingLyrics) toggleLyricsView();
         }, 300);
     } else {
         panel.classList.add('show');
@@ -428,6 +455,55 @@ function toggleMusicList() {
         setTimeout(updateMusicTabIndicator, 350);
     }
 }
+
+// 切换歌词/播放列表视图
+let _showingLyrics = false;
+function toggleLyricsView() {
+    const grid = document.getElementById('musicListGrid');
+    const lyricsContainer = document.getElementById('musicLyricsContainer');
+    const tabs = document.getElementById('musicTabs');
+    const addBtn = document.getElementById('musicAddBtn');
+    const titleEl = document.getElementById('panelTitle');
+    const toggleBtn = document.getElementById('lyricsToggleBtn');
+    if (!grid || !lyricsContainer) return;
+    _showingLyrics = !_showingLyrics;
+    if (_showingLyrics) {
+        grid.style.display = 'none';
+        lyricsContainer.style.display = 'block';
+        if (tabs) tabs.style.display = 'none';
+        if (addBtn) addBtn.style.display = 'none';
+        if (titleEl) titleEl.textContent = '歌词';
+        if (toggleBtn) {
+            toggleBtn.textContent = '列表';
+            toggleBtn.classList.add('active');
+        }
+    } else {
+        grid.style.display = '';
+        lyricsContainer.style.display = 'none';
+        if (tabs) tabs.style.display = '';
+        if (addBtn) addBtn.style.display = '';
+        if (titleEl) titleEl.textContent = '播放列表';
+        if (toggleBtn) {
+            toggleBtn.textContent = '歌词';
+            toggleBtn.classList.remove('active');
+        }
+        renderMusicList();
+    }
+}
+
+// 更新歌词显示
+function updateLyricsDisplay(songName, meta) {
+    const nameEl = document.getElementById('lyricsSongName');
+    const contentEl = document.getElementById('lyricsContent');
+    if (!nameEl || !contentEl) return;
+    nameEl.textContent = songName + (meta && meta.artist ? ' - ' + meta.artist : '');
+    if (meta && meta.lyrics && meta.lyrics.trim()) {
+        contentEl.textContent = meta.lyrics.trim();
+    } else {
+        contentEl.textContent = '暂无歌词';
+    }
+}
+
 let _isRenderingMusicList = false;
 let _musicListNeedsRerender = false;
 function renderMusicList() {
@@ -452,17 +528,19 @@ function renderMusicList() {
     
     list.forEach((item, i) => {
         const isPlaying = (i === currentMusicIndex && isMusicPlaying && currentPlayingSource === currentMusicTab);
-        let src, name, coverUrl;
+        let src, name, coverUrl, artist = '';
         if (currentMusicTab === 'online') {
             src = getMusicSrc(item);
             const meta = musicMetaCache[src];
             coverUrl = (meta && meta.cover) ? meta.cover : '';
-            name = getMusicName(item); // 始终用文件名，不用ID3 title避免标签错误
+            artist = (meta && meta.artist) ? meta.artist : '';
+            name = getMusicName(item);
         } else {
             src = item.url;
             const meta = musicMetaCache[src];
             coverUrl = (meta && meta.cover) ? meta.cover : '';
-            name = item.name.replace(/\.[^/.]+$/, ''); // 本地歌曲也用文件名
+            artist = (meta && meta.artist) ? meta.artist : '';
+            name = item.name.replace(/\.[^/.]+$/, '');
         }
         const coverHtml = coverUrl 
             ? '<img src="' + coverUrl + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' 
@@ -470,10 +548,11 @@ function renderMusicList() {
         const delBtn = currentMusicTab === 'local' 
             ? '<div class="mli-delete" onclick="event.stopPropagation();deleteLocalSong(\'' + item.id + '\')">✕</div>' 
             : '';
+        const statusText = isPlaying ? '正在播放' : (artist || '点击播放');
         html += '<div class="music-list-item' + (isPlaying ? ' active' : '') + '" onclick="playMusicFromList(\'' + currentMusicTab + '\',' + i + ')">' +
             '<div class="mli-cover">' + coverHtml + '</div>' +
             '<div class="mli-info"><div class="mli-name">' + name + '</div>' +
-            '<div class="mli-status">' + (isPlaying ? '正在播放' : '点击播放') + '</div></div>' + delBtn + '</div>';
+            '<div class="mli-status">' + statusText + '</div></div>' + delBtn + '</div>';
     });
     // 高度过渡动画
     const prevHeight = grid.offsetHeight;
@@ -530,13 +609,16 @@ function playLocalMusicAt(index) {
     const displayName = song.name.replace(/\.[^/.]+$/, '');
     setMusicCover(null);
     document.getElementById('musicTitle').textContent = displayName;
+    const artistEl = document.getElementById('musicArtist');
+    if (artistEl) artistEl.textContent = '';
     // 立即开始解析ID3（不等play成功）
     parseMusicMeta(src, function(meta) {
         if (currentPlaySrc !== src) return; // 竞态保护
-        if (meta && meta.cover) setMusicCover(meta.cover);
-        // 本地歌曲：歌名用文件名，仅追加艺术家信息
-        const title = displayName + (meta && meta.artist ? ' - ' + meta.artist : '');
-        document.getElementById('musicTitle').textContent = title;
+        if (meta) {
+            if (meta.cover) setMusicCover(meta.cover);
+            if (meta.artist && artistEl) artistEl.textContent = meta.artist;
+            updateLyricsDisplay(displayName, meta);
+        }
         updateMediaSession(displayName, meta && meta.artist ? meta.artist : '', meta && meta.cover ? meta.cover : '');
     });
     audio.src = src;
@@ -560,7 +642,7 @@ function updateMediaSession(title, artist, cover) {
     }
     navigator.mediaSession.metadata = new MediaMetadata({
         title: title || '未知歌曲',
-        artist: artist || '帅照合成大作战',
+        artist: artist || '未知歌手',
         album: '音乐播放器',
         artwork: artwork
     });

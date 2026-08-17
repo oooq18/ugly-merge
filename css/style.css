@@ -910,6 +910,15 @@
             font-weight: 500;
             letter-spacing: 0.3px;
         }
+        #music-player .music-artist {
+            font-size: 10px;
+            color: rgba(255,255,255,0.45);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 120px;
+            margin-top: 2px;
+        }
         #music-player .music-controls {
             display: flex;
             align-items: center;
@@ -999,6 +1008,45 @@
             font-size: 16px;
             font-weight: 600;
             color: #fff;
+        }
+        .panel-toggle-btn {
+            font-size: 12px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: transparent;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .panel-toggle-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .panel-toggle-btn.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+        /* 歌词显示区域 */
+        .music-lyrics-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+        .lyrics-song-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .lyrics-content {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            line-height: 2;
+            white-space: pre-wrap;
+            text-align: center;
         }
         #music-list-panel .music-list-close {
             width: 32px;
