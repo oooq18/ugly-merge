@@ -126,12 +126,14 @@ function initMusic() {
         isMusicPlaying = true;
         document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         document.getElementById('music-player').classList.add('playing');
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
         renderMusicList(); // 同步播放列表"正在播放"状态
     });
     audio.addEventListener('pause', () => {
         isMusicPlaying = false;
         document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
         document.getElementById('music-player').classList.remove('playing');
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
         renderMusicList(); // 同步播放列表"点击播放"状态
     });
     audio.addEventListener('ended', () => {
@@ -246,25 +248,25 @@ function playMusicAt(index) {
     const artistEl = document.getElementById('musicArtist');
     if (artistEl) artistEl.textContent = '';
     setMusicCover(null); // 先清空旧封面
-    // 0. 缓存命中：同步设置封面/歌手/歌词，确保和音乐同时出现
+    // 0. 缓存命中：同步设置封面/歌手，确保和音乐同时出现
     const cached = musicMetaCache[src];
     if (cached) {
         if (cached.cover) setMusicCover(cached.cover);
         if (cached.artist && artistEl) artistEl.textContent = cached.artist;
-        updateLyricsDisplay(displayName, cached);
     }
     // 1. 尝试同名封面图（最快，本地文件直接加载）
     resolveMusicCover(item, function(coverPath) {
         if (currentPlaySrc !== src) return; // 竞态保护：已切歌则丢弃
         if (coverPath) setMusicCover(coverPath);
     });
-    // 2. 解析ID3（封面/歌手/歌词），缓存命中时同步回调
+    // 2. 解析ID3（封面/歌手），缓存命中时同步回调
+    let songMeta = cached || null;
     parseMusicMeta(src, function(meta) {
         if (currentPlaySrc !== src) return; // 竞态保护：已切歌则丢弃
+        songMeta = meta;
         if (meta) {
             if (meta.cover) setMusicCover(meta.cover);
             if (meta.artist && artistEl) artistEl.textContent = meta.artist;
-            updateLyricsDisplay(displayName, meta);
         }
         updateMediaSession(displayName, meta && meta.artist ? meta.artist : '', meta && meta.cover ? meta.cover : '');
     });
@@ -273,6 +275,9 @@ function playMusicAt(index) {
     musicWaitingForInteraction = false;
     audio.play().then(() => {
         if (currentPlaySrc !== src) return; // 竞态保护
+        // 播放开始后再次设置媒体会话，确保系统控制面板显示信息
+        updateMediaSession(displayName, songMeta && songMeta.artist ? songMeta.artist : '', songMeta && songMeta.cover ? songMeta.cover : '');
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
         renderMusicList(); // 更新播放列表高亮
     }).catch((err) => {
         if (currentPlaySrc !== src) return;
@@ -288,7 +293,7 @@ function parseMusicMeta(src, callback, force) {
         return;
     }
     if (typeof jsmediatags === 'undefined') {
-        musicMetaCache[src] = {title: '', artist: '', album: '', lyrics: '', cover: null};
+        musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
         return;
     }
@@ -299,29 +304,8 @@ function parseMusicMeta(src, callback, force) {
                 const meta = {
                     title: tag.tags.title || '',
                     artist: tag.tags.artist || '',
-                    album: tag.tags.album || '',
-                    lyrics: '',
                     cover: null
                 };
-                // 解析内嵌歌词（ID3v2 USLT帧）
-                let lyrics = tag.tags.USLT || tag.tags.lyrics || tag.tags.Lyrics;
-                if (lyrics) {
-                    if (typeof lyrics === 'object') {
-                        if (Array.isArray(lyrics)) {
-                            for (let i = 0; i < lyrics.length; i++) {
-                                const t = lyrics[i];
-                                if (t && (t.text || t.data)) {
-                                    meta.lyrics = t.text || t.data || '';
-                                    break;
-                                }
-                            }
-                        } else {
-                            meta.lyrics = lyrics.text || lyrics.data || '';
-                        }
-                    } else {
-                        meta.lyrics = lyrics;
-                    }
-                }
                 let picture = tag.tags.picture;
                 if (!picture && tag.tags.image) picture = tag.tags.image;
                 if (!picture && tag.tags.metadataBlock) {
@@ -348,14 +332,14 @@ function parseMusicMeta(src, callback, force) {
                 callback(meta);
             },
             onError: function() {
-                musicMetaCache[src] = {title: '', artist: '', album: '', lyrics: '', cover: null};
+                musicMetaCache[src] = {title: '', artist: '', cover: null};
                 callback(null);
             }
             });
         };
         if (src.startsWith('blob:')) {
             fetch(src).then(r => r.blob()).then(blob => doRead(blob)).catch(() => {
-                musicMetaCache[src] = {title: '', artist: '', album: '', lyrics: '', cover: null};
+                musicMetaCache[src] = {title: '', artist: '', cover: null};
                 callback(null);
             });
         } else {
@@ -363,7 +347,7 @@ function parseMusicMeta(src, callback, force) {
             doRead(absSrc);
         }
     } catch(e) {
-        musicMetaCache[src] = {title: '', artist: '', album: '', lyrics: '', cover: null};
+        musicMetaCache[src] = {title: '', artist: '', cover: null};
         callback(null);
     }
 }
@@ -461,62 +445,12 @@ function toggleMusicList() {
         setTimeout(() => {
             panel.classList.remove('show');
             panel.classList.remove('closing');
-            // 关闭时重置为播放列表视图
-            if (_showingLyrics) toggleLyricsView();
         }, 300);
     } else {
         panel.classList.add('show');
         renderMusicList();
         // 延迟更新指示器，等滑入动画完成位置稳定
         setTimeout(updateMusicTabIndicator, 350);
-    }
-}
-
-// 切换歌词/播放列表视图
-let _showingLyrics = false;
-function toggleLyricsView() {
-    const grid = document.getElementById('musicListGrid');
-    const lyricsContainer = document.getElementById('musicLyricsContainer');
-    const tabs = document.getElementById('musicTabs');
-    const addBtn = document.getElementById('musicAddBtn');
-    const titleEl = document.getElementById('panelTitle');
-    const toggleBtn = document.getElementById('lyricsToggleBtn');
-    if (!grid || !lyricsContainer) return;
-    _showingLyrics = !_showingLyrics;
-    if (_showingLyrics) {
-        grid.style.display = 'none';
-        lyricsContainer.style.display = 'block';
-        if (tabs) tabs.style.display = 'none';
-        if (addBtn) addBtn.style.display = 'none';
-        if (titleEl) titleEl.textContent = '歌词';
-        if (toggleBtn) {
-            toggleBtn.textContent = '列表';
-            toggleBtn.classList.add('active');
-        }
-    } else {
-        grid.style.display = '';
-        lyricsContainer.style.display = 'none';
-        if (tabs) tabs.style.display = '';
-        if (addBtn) addBtn.style.display = '';
-        if (titleEl) titleEl.textContent = '播放列表';
-        if (toggleBtn) {
-            toggleBtn.textContent = '歌词';
-            toggleBtn.classList.remove('active');
-        }
-        renderMusicList();
-    }
-}
-
-// 更新歌词显示
-function updateLyricsDisplay(songName, meta) {
-    const nameEl = document.getElementById('lyricsSongName');
-    const contentEl = document.getElementById('lyricsContent');
-    if (!nameEl || !contentEl) return;
-    nameEl.textContent = songName + (meta && meta.artist ? ' - ' + meta.artist : '');
-    if (meta && meta.lyrics && meta.lyrics.trim()) {
-        contentEl.textContent = meta.lyrics.trim();
-    } else {
-        contentEl.textContent = '暂无歌词';
     }
 }
 
@@ -627,20 +561,20 @@ function playLocalMusicAt(index) {
     document.getElementById('musicTitle').textContent = displayName;
     const artistEl = document.getElementById('musicArtist');
     if (artistEl) artistEl.textContent = '';
-    // 缓存命中：同步设置封面/歌手/歌词
+    // 缓存命中：同步设置封面/歌手
     const cached = musicMetaCache[src];
     if (cached) {
         if (cached.cover) setMusicCover(cached.cover);
         if (cached.artist && artistEl) artistEl.textContent = cached.artist;
-        updateLyricsDisplay(displayName, cached);
     }
-    // 解析ID3（封面/歌手/歌词），缓存命中时同步回调
+    // 解析ID3（封面/歌手），缓存命中时同步回调
+    let songMeta = cached || null;
     parseMusicMeta(src, function(meta) {
         if (currentPlaySrc !== src) return; // 竞态保护
+        songMeta = meta;
         if (meta) {
             if (meta.cover) setMusicCover(meta.cover);
             if (meta.artist && artistEl) artistEl.textContent = meta.artist;
-            updateLyricsDisplay(displayName, meta);
         }
         updateMediaSession(displayName, meta && meta.artist ? meta.artist : '', meta && meta.cover ? meta.cover : '');
     });
@@ -648,6 +582,9 @@ function playLocalMusicAt(index) {
     musicWaitingForInteraction = false;
     audio.play().then(() => {
         if (currentPlaySrc !== src) return;
+        // 播放开始后再次设置媒体会话，确保系统控制面板显示信息
+        updateMediaSession(displayName, songMeta && songMeta.artist ? songMeta.artist : '', songMeta && songMeta.cover ? songMeta.cover : '');
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
         renderMusicList();
     }).catch((err) => {
         if (currentPlaySrc !== src) return;

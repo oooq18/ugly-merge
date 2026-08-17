@@ -8,9 +8,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="creative-medium" content="mini-game">
     <title>帅照合成大作战</title>
-    <script src="lib/matter.min.js?v=20260817l"></script>
-    <script src="lib/jsmediatags.min.js?v=20260817l"></script>
-    <link rel="stylesheet" href="css/style.css?v=20260817l">
+    <script src="lib/matter.min.js?v=20260817m"></script>
+    <script src="lib/jsmediatags.min.js?v=20260817m"></script>
+    <link rel="stylesheet" href="css/style.css?v=20260817m">
 </head>
 <body>
     <div id="app">
@@ -171,8 +171,7 @@
     <div id="music-list-panel" onclick="if(event.target===this)toggleMusicList()">
         <div class="music-list-content">
             <div class="music-list-header">
-                <span id="panelTitle">播放列表</span>
-                <button class="panel-toggle-btn" id="lyricsToggleBtn" onclick="event.stopPropagation();toggleLyricsView()" title="歌词">歌词</button>
+                <span>播放列表</span>
             </div>
             <div class="music-tabs" id="musicTabs">
                 <div class="tab-indicator" id="musicTabIndicator"></div>
@@ -180,10 +179,6 @@
                 <div class="music-tab" data-tab="local" onclick="switchMusicTab('local')">本地</div>
             </div>
             <div class="music-list-grid" id="musicListGrid"></div>
-            <div class="music-lyrics-container" id="musicLyricsContainer" style="display:none;">
-                <div class="lyrics-song-name" id="lyricsSongName"></div>
-                <div class="lyrics-content" id="lyricsContent">暂无歌词</div>
-            </div>
             <div class="music-add-btn" id="musicAddBtn" onclick="document.getElementById('localMusicInput').click()">
                 <svg viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
                 添加本地歌曲
@@ -214,6 +209,6 @@
         </div>
     </div>
 
-    <script src="js/game.js?v=20260817l"></script>
+    <script src="js/game.js?v=20260817m"></script>
 </body>
 </html>
