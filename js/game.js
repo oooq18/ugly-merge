@@ -1,15 +1,10 @@
 // ============================================================
 // 0. 音乐播放器
 // ============================================================
-// 把音乐文件放到 assets/music/ 文件夹，然后在这里添加文件名
-// 支持格式：mp3 / wav / ogg / flac / m4a
-let musicList = [
-    // 支持两种格式：
-    // 1. 字符串：'assets/music/歌曲.mp3'（自动找同名封面 歌曲.jpg/png）
-    // 2. 对象：{src: 'assets/music/歌曲.mp3', cover: 'assets/music/封面.jpg', name: '自定义歌名'}
-    {src: 'assets/music/错位时空.mp3', name: '错位时空'},
-    {src: 'assets/music/悬溺.mp3', name: '悬溺'},
-];
+// 在线音乐列表从 assets/music/manifest.json 加载，加新歌只需编辑该JSON
+// 缓存版本号：更新音乐文件后修改此值，强制浏览器重新下载
+const MUSIC_CACHE_VERSION = '20260818a';
+let musicList = [];
 let audio = null;
 let currentMusicIndex = -1;
 let currentPlaySrc = ''; // 当前播放的src（相对路径或blob URL）
@@ -113,6 +108,29 @@ function rebuildShuffleOrder() {
     }
     musicShufflePos = 0;
 }
+
+// 从 manifest.json 加载在线音乐列表
+async function loadMusicManifest() {
+    try {
+        const resp = await fetch('assets/music/manifest.json?v=' + MUSIC_CACHE_VERSION);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const list = await resp.json();
+        if (Array.isArray(list) && list.length > 0) {
+            musicList = list;
+            rebuildShuffleOrder();
+            console.log('已加载', musicList.length, '首在线音乐');
+        }
+    } catch (e) {
+        console.warn('加载音乐列表失败，使用默认列表:', e);
+        // 兜底默认列表
+        musicList = [
+            {src: 'assets/music/错位时空.mp3', name: '错位时空'},
+            {src: 'assets/music/悬溺.mp3', name: '悬溺'},
+        ];
+        rebuildShuffleOrder();
+    }
+}
+
 function initMusic() {
     const player = document.getElementById('music-player');
     initLocalMusicDB();
@@ -207,7 +225,7 @@ function getMusicNameBySrc(src) {
 }
 function getMusicSrc(item) {
     const raw = typeof item === 'string' ? item : item.src;
-    return encodeURI(raw); // 中文文件名需要URL编码
+    return encodeURI(raw) + '?v=' + MUSIC_CACHE_VERSION; // 缓存版本号，更新音乐后改版本号强制刷新
 }
 function getMusicCover(item) {
     if (typeof item === 'object' && item.cover) return item.cover;
@@ -734,7 +752,10 @@ async function bootApp() {
         // 提前初始化音乐，和图片预加载并行，不阻塞
         initMusic();
         updateMusicPlayerVisibility();
+        // 并行：加载在线音乐列表 + 预加载图片
+        const manifestPromise = loadMusicManifest();
         await preloadPhotos();
+        await manifestPromise; // 确保音乐列表已加载
         document.getElementById('loading').classList.remove('active');
         document.getElementById('home').classList.add('active');
         currentScreen = 'home';
