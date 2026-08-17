@@ -328,6 +328,8 @@ function toggleMusicList() {
     } else {
         panel.classList.add('show');
         renderMusicList();
+        // 延迟更新指示器，等滑入动画完成位置稳定
+        setTimeout(updateMusicTabIndicator, 350);
     }
 }
 let _isRenderingMusicList = false;
