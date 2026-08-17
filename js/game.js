@@ -8,7 +8,7 @@ let musicList = [
     // 1. 字符串：'assets/music/歌曲.mp3'（自动找同名封面 歌曲.jpg/png）
     // 2. 对象：{src: 'assets/music/歌曲.mp3', cover: 'assets/music/封面.jpg', name: '自定义歌名'}
     'assets/music/错位时空.mp3',
-    'assets/music/错位时空.flac',
+    'assets/music/悬溺.mp3',
 ];
 let audio = null;
 let currentMusicIndex = -1;
