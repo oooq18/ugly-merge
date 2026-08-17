@@ -369,7 +369,7 @@ function renderMusicList() {
             : '<span style="font-size:18px;">♫</span>';
         const delBtn = currentMusicTab === 'local' 
             ? '<div class="mli-delete" onclick="event.stopPropagation();deleteLocalSong(\'' + item.id + '\')">✕</div>' 
-            : '<div class="mli-delete" onclick="event.stopPropagation();deleteOnlineSong(' + i + ')">✕</div>';
+            : '';
         html += '<div class="music-list-item' + (isPlaying ? ' active' : '') + '" onclick="playMusicFromList(\'' + currentMusicTab + '\',' + i + ')">' +
             '<div class="mli-cover">' + coverHtml + '</div>' +
             '<div class="mli-info"><div class="mli-name">' + name + '</div>' +
