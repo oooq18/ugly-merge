@@ -155,23 +155,23 @@ function initMusic() {
     document.addEventListener('touchstart', resumeOnInteract);
     document.addEventListener('keydown', resumeOnInteract);
     rebuildShuffleOrder();
-    // 预解析所有在线歌曲的ID3封面（后台异步，不阻塞UI），播放时秒开
-    setTimeout(function() {
-        musicList.forEach(function(item) {
-            const src = getMusicSrc(item);
-            if (!musicMetaCache[src]) {
-                parseMusicMeta(src, function() {});
-            }
-        });
-    }, 300);
-    // 自动随机播放第一首（浏览器可能阻止，被阻止时等用户交互后恢复）
-    setTimeout(function() {
-        if (musicList.length > 0 && currentMusicIndex === -1) {
-            playMusicAt(musicShuffleOrder[musicShufflePos]);
-        }
-    }, 500);
     // 初始化tab指示器位置
     setTimeout(updateMusicTabIndicator, 100);
+}
+
+// 图片预加载完成后调用：预解析ID3封面 + 自动播放
+function startAutoPlay() {
+    // 预解析所有在线歌曲的ID3封面（后台异步，不阻塞UI），播放时秒开
+    musicList.forEach(function(item) {
+        const src = getMusicSrc(item);
+        if (!musicMetaCache[src]) {
+            parseMusicMeta(src, function() {});
+        }
+    });
+    // 自动随机播放第一首（浏览器可能阻止，被阻止时等用户交互后恢复）
+    if (musicList.length > 0 && currentMusicIndex === -1) {
+        playMusicAt(musicShuffleOrder[musicShufflePos]);
+    }
 }
 
 function updateMusicPlayerVisibility() {
@@ -674,6 +674,7 @@ async function bootApp() {
         currentScreen = 'home';
         updateLevelStatus();
         updateMusicPlayerVisibility();
+        startAutoPlay(); // 图片加载完后再开始音乐自动播放，避免占用带宽
     } catch (e) {
         console.error('启动失败:', e);
         window.onerror(e.message);
