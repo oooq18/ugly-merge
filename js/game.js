@@ -352,23 +352,25 @@ function parseMusicMeta(src, callback, force) {
     }
 }
 
+let _coverToken = 0;
 function setMusicCover(coverPath) {
     const coverEl = document.querySelector('#music-player .music-cover');
     if (!coverEl) return;
+    const myToken = ++_coverToken; // 竞态保护：旧封面的回调会被丢弃
     if (!coverPath) {
         coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
         return;
     }
-    const img = new Image();
-    img.onload = function() {
-        coverEl.innerHTML = '';
-        coverEl.appendChild(img);
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
-    };
+    // 立即创建img并插入DOM，不等onload——封面和音乐同时出现
+    const img = document.createElement('img');
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
     img.onerror = function() {
+        if (myToken !== _coverToken) return; // 已被新封面替换
         coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
     };
     img.src = coverPath;
+    coverEl.innerHTML = '';
+    coverEl.appendChild(img);
 }
 
 function toggleMusic() {
