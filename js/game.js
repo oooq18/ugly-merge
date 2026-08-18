@@ -1101,6 +1101,15 @@ function initGame(cl) {
     } else {
         spawnNextBallNormal();
     }
+        activateNextBall(); // 提升为当前可操控球
+    // 生成真正的下一个球（用于预览）
+    if (isHiddenMode) {
+        spawnNextBallHidden();
+    } else if (isJiMode) {
+        spawnNextBallJi();
+    } else {
+        spawnNextBallNormal();
+    }
     updateNextBallPreview();
 
     Events.on(engine, 'collisionStart', handleCollision);
@@ -1118,9 +1127,6 @@ function getRandomStartLevel() {
 function spawnNextBallNormal() {
     const level = getRandomStartLevel();
     nextBall = { character: charPrefix, level };
-    dropX = gameWidth / 2;
-    currentBall = { ...nextBall, x: dropX, y: dropLineY };
-    unlockPhoto(charPrefix, nextBall.level);
 }
 
 function spawnNextBallHidden() {
@@ -1128,17 +1134,19 @@ function spawnNextBallHidden() {
     const character = chars[Math.floor(Math.random() * 2)];
     const level = Math.floor(Math.random() * 3) + 1;
     nextBall = { character, level };
-    dropX = gameWidth / 2;
-    currentBall = { ...nextBall, x: dropX, y: dropLineY };
-    // 不自动解锁，由碰撞解锁
 }
 
 function spawnNextBallJi() {
     const level = getRandomStartLevel();
     nextBall = { character: 'ji', level };
+}
+// 把预览的下一个球提升为当前可操控的球
+function activateNextBall() {
     dropX = gameWidth / 2;
     currentBall = { ...nextBall, x: dropX, y: dropLineY };
-    unlockPhoto('ji', nextBall.level);
+    if (!(charPrefix === '' && currentCharacter === 'hidden')) {
+        unlockPhoto(nextBall.character, nextBall.level);
+    }
 }
 
 function updateNextBallPreview() {
@@ -1175,7 +1183,9 @@ function dropBall() {
     setTimeout(() => {
         if (gameOver) return;
         isDropping = false;
-        // 根据模式生成下一个
+        // 把预览的下一个球提升为当前可操控球
+                activateNextBall();
+        // 生成新的下一个球（用于预览）
         if (charPrefix === '' && currentCharacter === 'hidden') {
             spawnNextBallHidden();
         } else if (charPrefix === '' && currentCharacter === 'ji') {
