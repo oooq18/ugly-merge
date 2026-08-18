@@ -360,7 +360,7 @@ function parseMusicMeta(src, callback, force) {
                 callback(null);
             });
         } else {
-            src = src.split('?')[0]; const absSrc = src.startsWith('http') || src.startsWith('data:') ? src : new URL(src, window.location.origin).href;
+            src = src.split('?')[0]; const absSrc = src.startsWith('http') || src.startsWith('data:') ? src : new URL(src, window.location.href).href;
             doRead(absSrc);
         }
     } catch(e) {
