@@ -336,8 +336,7 @@ function parseMusicMeta(src, callback, force) {
                 }
                 if (picture && picture.data) {
                     try {
-                        const dataArr = Array.isArray(picture.data) ? picture.data : Array.from(picture.data);
-                        const uint8 = new Uint8Array(dataArr);
+                        const uint8 = picture.data instanceof Uint8Array ? picture.data : picture.data instanceof ArrayBuffer ? new Uint8Array(picture.data) : new Uint8Array(Array.isArray(picture.data) ? picture.data : Array.from(picture.data));
                         let binary = '';
                         for (let i = 0; i < uint8.length; i += 8192) {
                             binary += String.fromCharCode.apply(null, uint8.subarray(i, i + 8192));
