@@ -196,7 +196,7 @@ function startAutoPlay() {
             const item = musicList[i];
             const src = getMusicSrc(item);
             i++;
-            if (musicMetaCache[src]) { preloadNext(); return; }
+            if (musicMetaCache[src.split('?')[0]]) { preloadNext(); return; }
             parseMusicMeta(src, function() { setTimeout(preloadNext, 200); });
         }
         preloadNext();
@@ -267,7 +267,7 @@ function playMusicAt(index) {
     if (artistEl) artistEl.textContent = '';
     setMusicCover(null); // 先清空旧封面
     // 0. 缓存命中：同步设置封面/歌手，确保和音乐同时出现
-    const cached = musicMetaCache[src];
+    const cached = musicMetaCache[src.split('?')[0]];
     if (cached) {
         if (cached.cover) setMusicCover(cached.cover);
         if (cached.artist && artistEl) artistEl.textContent = cached.artist;
@@ -306,12 +306,12 @@ function playMusicAt(index) {
     });
 }
 function parseMusicMeta(src, callback, force) {
-    if (musicMetaCache[src] && !force) {
-        callback(musicMetaCache[src]);
+    if (musicMetaCache[src.split('?')[0]] && !force) {
+        callback(musicMetaCache[src.split('?')[0]]);
         return;
     }
     if (typeof jsmediatags === 'undefined') {
-        musicMetaCache[src] = {title: '', artist: '', cover: null};
+        musicMetaCache[src.split('?')[0]] = {title: '', artist: '', cover: null};
         callback(null);
         return;
     }
@@ -346,26 +346,26 @@ function parseMusicMeta(src, callback, force) {
                         meta.cover = 'data:' + mime + ';base64,' + btoa(binary);
                     } catch(e) {}
                 }
-                musicMetaCache[src] = meta;
+                musicMetaCache[src.split('?')[0]] = meta;
                 callback(meta);
             },
             onError: function() {
-                musicMetaCache[src] = {title: '', artist: '', cover: null};
+                musicMetaCache[src.split('?')[0]] = {title: '', artist: '', cover: null};
                 callback(null);
             }
             });
         };
         if (src.startsWith('blob:')) {
             fetch(src).then(r => r.blob()).then(blob => doRead(blob)).catch(() => {
-                musicMetaCache[src] = {title: '', artist: '', cover: null};
+                musicMetaCache[src.split('?')[0]] = {title: '', artist: '', cover: null};
                 callback(null);
             });
         } else {
-            const absSrc = src.startsWith('http') || src.startsWith('data:') ? src : new URL(src, window.location.origin).href;
+            src = src.split('?')[0]; const absSrc = src.startsWith('http') || src.startsWith('data:') ? src : new URL(src, window.location.origin).href;
             doRead(absSrc);
         }
     } catch(e) {
-        musicMetaCache[src] = {title: '', artist: '', cover: null};
+        musicMetaCache[src.split('?')[0]] = {title: '', artist: '', cover: null};
         callback(null);
     }
 }
@@ -501,13 +501,13 @@ function renderMusicList() {
         let src, name, coverUrl, artist = '';
         if (currentMusicTab === 'online') {
             src = getMusicSrc(item);
-            const meta = musicMetaCache[src];
+            const meta = musicMetaCache[src.split('?')[0]];
             coverUrl = (meta && meta.cover) ? meta.cover : '';
             artist = (meta && meta.artist) ? meta.artist : '';
             name = getMusicName(item);
         } else {
             src = item.url;
-            const meta = musicMetaCache[src];
+            const meta = musicMetaCache[src.split('?')[0]];
             coverUrl = (meta && meta.cover) ? meta.cover : '';
             artist = (meta && meta.artist) ? meta.artist : '';
             name = item.name.replace(/\.[^/.]+$/, '');
@@ -551,7 +551,7 @@ function renderMusicList() {
     setTimeout(() => {
         list.forEach((item) => {
             const src = currentMusicTab === 'online' ? getMusicSrc(item) : item.url;
-            if (!musicMetaCache[src]) {
+            if (!musicMetaCache[src.split('?')[0]]) {
                 parseMusicMeta(src, function() { renderMusicList(); });
             }
         });
@@ -582,7 +582,7 @@ function playLocalMusicAt(index) {
     const artistEl = document.getElementById('musicArtist');
     if (artistEl) artistEl.textContent = '';
     // 缓存命中：同步设置封面/歌手
-    const cached = musicMetaCache[src];
+    const cached = musicMetaCache[src.split('?')[0]];
     if (cached) {
         if (cached.cover) setMusicCover(cached.cover);
         if (cached.artist && artistEl) artistEl.textContent = cached.artist;
