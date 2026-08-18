@@ -305,11 +305,87 @@ function playMusicAt(index) {
         console.log('自动播放被阻止，等待用户交互后播放:', displayName);
     });
 }
+function parseMusicMetaManual(src, callback) {
+    const cleanSrc = src.split('?')[0];
+    const fetchUrl = cleanSrc.startsWith('http') || cleanSrc.startsWith('data:') ? cleanSrc : new URL(cleanSrc, window.location.href).href;
+    const processBuffer = function(buffer) {
+        try {
+            const bytes = new Uint8Array(buffer);
+            if (bytes.length < 10 || bytes[0] !== 0x49 || bytes[1] !== 0x44 || bytes[2] !== 0x33) { callback(null); return; }
+            const tagSize = (bytes[6] << 21) | (bytes[7] << 14) | (bytes[8] << 7) | bytes[9];
+            let pos = 10;
+            let coverDataUrl = null;
+            let title = '';
+            let artist = '';
+            while (pos < Math.min(tagSize + 10, bytes.length - 10)) {
+                const frameId = String.fromCharCode(bytes[pos], bytes[pos+1], bytes[pos+2], bytes[pos+3]);
+                if (frameId === '\x00\x00\x00\x00') break;
+                const frameSize = (bytes[pos+4] << 24) | (bytes[pos+5] << 16) | (bytes[pos+6] << 8) | bytes[pos+7];
+                if (frameSize <= 0 || pos + 10 + frameSize > bytes.length) break;
+                const fd = bytes.slice(pos + 10, pos + 10 + frameSize);
+                if (frameId === 'APIC') {
+                    let p = 1;
+                    let mimeEnd = p;
+                    while (fd[mimeEnd] !== 0 && mimeEnd < fd.length) mimeEnd++;
+                    const mime = new TextDecoder('ascii').decode(fd.slice(p, mimeEnd));
+                    p = mimeEnd + 2;
+                    let descEnd = p;
+                    while (fd[descEnd] !== 0 && descEnd < fd.length) descEnd++;
+                    const picData = fd.slice(descEnd + 1);
+                    if (picData.length > 0) {
+                        let binary = '';
+                        for (let i = 0; i < picData.length; i += 8192) {
+                            binary += String.fromCharCode.apply(null, picData.subarray(i, i + 8192));
+                        }
+                        coverDataUrl = 'data:' + (mime || 'image/jpeg') + ';base64,' + btoa(binary);
+                    }
+                } else if (frameId === 'TIT2' || frameId === 'TPE1') {
+                    try {
+                        const enc = fd[0];
+                        let text = '';
+                        if (enc === 1 || enc === 2) text = new TextDecoder('utf-16').decode(fd.slice(1)).replace(/\x00/g, '');
+                        else text = new TextDecoder('utf-8').decode(fd.slice(1)).replace(/\x00/g, '');
+                        if (frameId === 'TIT2') title = text;
+                        else artist = text;
+                    } catch(e) {}
+                }
+                pos += 10 + frameSize;
+            }
+            callback({title: title, artist: artist, cover: coverDataUrl});
+        } catch(e) { callback(null); }
+    };
+    if (fetchUrl.startsWith('data:')) { callback(null); return; }
+    if (fetchUrl.startsWith('blob:')) {
+        fetch(fetchUrl).then(r => r.arrayBuffer()).then(processBuffer).catch(() => callback(null));
+    } else {
+        fetch(fetchUrl, {headers: {'Range': 'bytes=0-1048575'}}).then(r => r.arrayBuffer()).then(processBuffer).catch(() => {
+            fetch(fetchUrl).then(r => r.arrayBuffer()).then(processBuffer).catch(() => callback(null));
+        });
+    }
+}
+
 function parseMusicMeta(src, callback, force) {
     if (musicMetaCache[src.split('?')[0]] && !force) {
         callback(musicMetaCache[src.split('?')[0]]);
         return;
     }
+    // Use manual ID3v2 parser first (faster, no timeout, only downloads first 1MB)
+    try {
+        parseMusicMetaManual(src, function(meta) {
+            if (meta && (meta.cover || meta.title || meta.artist)) {
+                musicMetaCache[src.split('?')[0]] = meta;
+                callback(meta);
+            } else {
+                // Fallback to jsmediatags
+                parseMusicMetaFallback(src, callback);
+            }
+        });
+    } catch(e) {
+        parseMusicMetaFallback(src, callback);
+    }
+}
+
+function parseMusicMetaFallback(src, callback) {
     if (typeof jsmediatags === 'undefined') {
         musicMetaCache[src.split('?')[0]] = {title: '', artist: '', cover: null};
         callback(null);
