@@ -3,7 +3,7 @@
 // ============================================================
 // 在线音乐列表从 assets/music/manifest.json 加载，加新歌只需编辑该JSON
 // 缓存版本号：更新音乐文件后修改此值，强制浏览器重新下载
-const MUSIC_CACHE_VERSION = '20260818b';
+const MUSIC_CACHE_VERSION = '2026081cb';
 let musicList = [];
 let audio = null;
 let currentMusicIndex = -1;
