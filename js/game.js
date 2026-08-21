@@ -1581,11 +1581,19 @@ function savePoster() {
     document.body.removeChild(a);
 }
 
+// 动态设置app高度，解决大屏/平板浏览器工具栏导致100vh偏大、界面偏下的问题
+function setAppHeight() {
+    const app = document.getElementById('app');
+    if (app) app.style.height = window.innerHeight + 'px';
+}
+setAppHeight();
 window.addEventListener('resize', () => {
+    setAppHeight();
     if (currentScreen === 'game') { resizeCanvas(); }
     updateMusicTabIndicator();
     updateTabIndicator();
 });
+window.addEventListener('orientationchange', () => { setTimeout(setAppHeight, 300); });
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
