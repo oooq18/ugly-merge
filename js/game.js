@@ -1539,7 +1539,7 @@ function bindInput() {
 function startGame(cl) {
     if (cl === 'hidden' || cl === 'ji') {
         if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
-            showToast('任意通关一人解锁');
+            showToast('任意合成一人通关');
             return;
         }
     }
