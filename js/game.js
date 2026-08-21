@@ -1584,16 +1584,30 @@ function savePoster() {
 // 动态设置app高度，解决大屏/平板浏览器工具栏导致100vh偏大、界面偏下的问题
 function setAppHeight() {
     const app = document.getElementById('app');
-    if (app) app.style.height = window.innerHeight + 'px';
+    if (!app) return;
+    // 优先使用 visualViewport（更准确，排除浏览器工具栏），回退到 innerHeight
+    var h = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+    app.style.height = h + 'px';
 }
+// 多次延迟重算，应对浏览器工具栏动态显示/隐藏
 setAppHeight();
+setTimeout(setAppHeight, 100);
+setTimeout(setAppHeight, 500);
+setTimeout(setAppHeight, 1000);
+setTimeout(setAppHeight, 2000);
+document.addEventListener('DOMContentLoaded', setAppHeight);
+window.addEventListener('load', setAppHeight);
 window.addEventListener('resize', () => {
     setAppHeight();
     if (currentScreen === 'game') { resizeCanvas(); }
     updateMusicTabIndicator();
     updateTabIndicator();
 });
-window.addEventListener('orientationchange', () => { setTimeout(setAppHeight, 300); });
+window.addEventListener('orientationchange', () => { setTimeout(setAppHeight, 300); setTimeout(setAppHeight, 600); });
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', setAppHeight);
+    window.visualViewport.addEventListener('scroll', setAppHeight);
+}
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
