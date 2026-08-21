@@ -411,25 +411,25 @@
         /* ===== 主界面 ===== */
         #home {
             justify-content: center;
-            gap: 48px;
+            gap: 40px;
         }
         .game-title {
-            font-size: clamp(32px, 9vw, 56px);
+            font-size: clamp(40px, 11vw, 68px);
             font-weight: 800;
-            letter-spacing: 2px;
+            letter-spacing: 6px;
             background: linear-gradient(135deg, #fff 0%, #999 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
             text-align: center;
-            line-height: 1.2;
+            line-height: 1.1;
+            padding-left: 6px;
         }
         .game-subtitle {
-            font-size: 14px;
-            color: #666;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            margin-top: -24px;
+            font-size: 13px;
+            color: #555;
+            letter-spacing: 2px;
+            margin-top: -8px;
         }
         .home-buttons {
             display: flex;
@@ -512,7 +512,7 @@
         }
         .level-card.disabled {
             opacity: 0.5;
-            pointer-events: none;
+            cursor: pointer;
         }
         .level-card .level-avatar {
             width: 64px;
