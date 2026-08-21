@@ -7,10 +7,10 @@
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="creative-medium" content="mini-game">
-    <title>帅照合成大作战</title>
+    <title>合成帅哥</title>
     <script src="lib/matter.min.js?v=20260818c"></script>
     <script src="lib/jsmediatags.min.js?v=20260818c"></script>
-    <link rel="stylesheet" href="css/style.css?v=20260821d">
+    <link rel="stylesheet" href="css/style.css?v=20260821e">
 </head>
 <body>
     <div id="app">
@@ -31,8 +31,8 @@
         <!-- 加载界面 -->
         <div id="loading" class="screen active">
             <div class="loading-content">
-                <div class="loading-title">帅照合成<br>大作战</div>
-                <div class="loading-sub">Merge to Glory</div>
+                <div class="loading-title">合成帅哥</div>
+                <div class="loading-sub">一步步合成你的专属帅照</div>
                 <div class="loading-spinner"></div>
                 <div class="loading-bar-wrap">
                     <div class="loading-bar" id="loadingBar"></div>
@@ -47,11 +47,11 @@
 
         <!-- 主界面 -->
         <div id="home" class="screen">
-            <div class="version-badge">v20260821d</div>
-            <div class="game-title">帅照合成<br>大作战</div>
-            <div class="game-subtitle">Merge to Glory</div>
+            <div class="version-badge">v20260821e</div>
+            <div class="game-title">合成帅哥</div>
+            <div class="game-subtitle">一步步合成你的专属帅照</div>
             <div class="home-buttons">
-                <button class="btn btn-primary" onclick="showScreen('levelSelect')">开始游戏</button>
+                <button class="btn btn-primary" onclick="showScreen('levelSelect')">开玩</button>
                 <button class="btn btn-ghost" onclick="showCollection()">图鉴</button>
             </div>
         </div>
@@ -70,7 +70,7 @@
                     <div class="level-avatar"><img src="assets/images/ma4.jpg" alt="老马"></div>
                     <div class="level-info">
                         <div class="level-name">第一关 · 老马</div>
-                        <div class="level-desc">经典帅照，从小到大合成终极形态</div>
+                        <div class="level-desc">经典老马，从小合到大</div>
                     </div>
                     <div class="level-arrow">→</div>
                 </div>
@@ -79,7 +79,7 @@
                     <div class="level-avatar"><img src="assets/images/pang4.jpg" alt="老胖"></div>
                     <div class="level-info">
                         <div class="level-name">第二关 · 老胖</div>
-                        <div class="level-desc">胖式帅气，合成最帅胖照</div>
+                        <div class="level-desc">老胖专属，越合越圆</div>
                     </div>
                     <div class="level-arrow">→</div>
                 </div>
@@ -88,7 +88,7 @@
                     <div class="level-avatar" id="hiddenAvatar">🔒</div>
                     <div class="level-info">
                         <div class="level-name">第三关 · 混合挑战</div>
-                        <div class="level-desc" id="hiddenLevelDesc">同时通关老马和老胖解锁</div>
+                        <div class="level-desc" id="hiddenLevelDesc">任意通关一人解锁</div>
                     </div>
                     <div class="level-arrow" id="hiddenArrow">🔒</div>
                 </div>
@@ -101,7 +101,7 @@
                     </div>
                     <div class="level-info">
                         <div class="level-name">第四关 · 鸡</div>
-                        <div class="level-desc" id="jiLevelDesc">同时通关老马和老胖解锁</div>
+                        <div class="level-desc" id="jiLevelDesc">任意通关一人解锁</div>
                     </div>
                     <div class="level-arrow" id="jiArrow">🔒</div>
                 </div>
@@ -129,22 +129,22 @@
                 <div class="next-ball" id="nextBall"><img src="" id="nextBallImg" alt=""></div>
             </div>
             <div class="game-overlay" id="winOverlay">
-                <div class="overlay-title">合成成功！</div>
+                <div class="overlay-title">nice</div>
                 <div class="final-photo"><img src="" id="winPhoto" alt="终极帅照"></div>
                 <div class="overlay-score" id="winScore">0</div>
                 <div class="overlay-buttons">
                     <button class="btn btn-primary" onclick="savePoster()">保存海报</button>
-                    <button class="btn" onclick="restartGame()">再玩一次</button>
-                    <button class="btn btn-ghost" onclick="backToLevelSelect()">返回选关</button>
+                    <button class="btn" onclick="restartGame()">再来一局</button>
+                    <button class="btn btn-ghost" onclick="backToLevelSelect()">返回</button>
                 </div>
             </div>
             <div class="game-overlay" id="loseOverlay">
                 <div class="overlay-title">游戏结束</div>
                 <div class="overlay-score" id="loseScore">0</div>
-                <div style="color:#888;font-size:14px;">再接再厉，帅无止境</div>
+                <div style="color:#888;font-size:14px;">就这？再来一把</div>
                 <div class="overlay-buttons">
-                    <button class="btn btn-primary" onclick="restartGame()">再来一次</button>
-                    <button class="btn btn-ghost" onclick="backToLevelSelect()">返回选关</button>
+                    <button class="btn btn-primary" onclick="restartGame()">再来一局</button>
+                    <button class="btn btn-ghost" onclick="backToLevelSelect()">返回</button>
                 </div>
             </div>
         </div>
@@ -210,6 +210,6 @@
         </div>
     </div>
 
-    <script src="js/game.js?v=20260821d"></script>
+    <script src="js/game.js?v=20260821e"></script>
 </body>
 </html>
