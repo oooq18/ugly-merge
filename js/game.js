@@ -931,7 +931,7 @@ function showScreen(name) {
 // 4. 关卡解锁状态（老马老胖通关7级后解锁混合和鸡）
 // ============================================================
 function updateLevelStatus() {
-    const unlocked = isUnlocked('ma', 7) && isUnlocked('pang', 7);
+    const unlocked = isUnlocked('ma', 7) || isUnlocked('pang', 7);
 
     // 隐藏关卡（混合挑战）
     const hiddenCard = document.getElementById('hiddenLevelCard');
@@ -940,13 +940,13 @@ function updateLevelStatus() {
     const hiddenAvatar = document.getElementById('hiddenAvatar');
     if (unlocked) {
         hiddenCard.classList.remove('disabled');
-        hiddenDesc.textContent = '双角色混合，挑战极限！';
+        hiddenDesc.textContent = '老马老胖一起上，更难';
         hiddenArrow.textContent = '→';
         hiddenAvatar.textContent = '⚡';
         hiddenAvatar.style.fontSize = '32px';
     } else {
         hiddenCard.classList.add('disabled');
-        hiddenDesc.textContent = '同时通关老马和老胖解锁';
+        hiddenDesc.textContent = '任意通关一人解锁';
         hiddenArrow.textContent = '🔒';
         hiddenAvatar.textContent = '🔒';
         hiddenAvatar.style.fontSize = '28px';
@@ -961,7 +961,7 @@ function updateLevelStatus() {
 
     if (unlocked) {
         jiCard.classList.remove('disabled');
-        jiDesc.textContent = '独立鸡关卡，合成最帅鸡照';
+        jiDesc.textContent = '鸡你太美';
         jiArrow.textContent = '→';
         // 显示图片，隐藏锁
         if (jiImg) {
@@ -971,7 +971,7 @@ function updateLevelStatus() {
         if (jiLock) jiLock.style.display = 'none';
     } else {
         jiCard.classList.add('disabled');
-        jiDesc.textContent = '同时通关老马和老胖解锁';
+        jiDesc.textContent = '任意通关一人解锁';
         jiArrow.textContent = '🔒';
         // 隐藏图片，显示锁
         if (jiImg) jiImg.style.display = 'none';
@@ -1033,11 +1033,11 @@ function renderCollection() {
             '</div>' +
             '<div class="collection-info">' +
             '<div class="collection-level">等级 ' + i + '</div>' +
-            '<div class="collection-name">' + (unlocked ? '帅照 ' + i : '未解锁') + '</div>' +
+            '<div class="collection-name">' + (unlocked ? '帅照 ' + i : '还没解锁') + '</div>' +
             '</div>' +
             '<button class="download-btn" ' + (unlocked ? '' : 'disabled') + ' onclick="downloadPhoto(\'' + cl +
             '\', ' + i + ')">' +
-            (unlocked ? '下载' : '未解锁') + '</button>' +
+            (unlocked ? '保存图片' : '还没解锁') + '</button>' +
             '</div>';
     }
     grid.innerHTML = html;
@@ -1538,7 +1538,8 @@ function bindInput() {
 // ============================================================
 function startGame(cl) {
     if (cl === 'hidden' || cl === 'ji') {
-        if (!(isUnlocked('ma', 7) && isUnlocked('pang', 7))) {
+        if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
+            showToast('任意通关一人解锁');
             return;
         }
     }
@@ -1579,6 +1580,19 @@ function savePoster() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+}
+
+// Toast 提示
+function showToast(msg) {
+    var t = document.createElement('div');
+    t.className = 'toast-msg';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function() { t.classList.add('show'); });
+    setTimeout(function() {
+        t.classList.remove('show');
+        setTimeout(function() { t.remove(); }, 300);
+    }, 2000);
 }
 
 // 动态设置app高度，解决大屏/平板浏览器工具栏导致100vh偏大、界面偏下的问题
