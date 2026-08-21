@@ -1584,15 +1584,18 @@ function savePoster() {
 
 // Toast 提示
 function showToast(msg) {
+    var old = document.querySelector('.toast-msg');
+    if (old) old.remove();
     var t = document.createElement('div');
     t.className = 'toast-msg';
     t.textContent = msg;
     document.body.appendChild(t);
-    requestAnimationFrame(function() { t.classList.add('show'); });
+    void t.offsetWidth;
+    setTimeout(function() { t.classList.add('show'); }, 20);
     setTimeout(function() {
         t.classList.remove('show');
-        setTimeout(function() { t.remove(); }, 300);
-    }, 2000);
+        setTimeout(function() { if (t.parentNode) t.remove(); }, 300);
+    }, 2200);
 }
 
 // 动态设置app高度，解决大屏/平板浏览器工具栏导致100vh偏大、界面偏下的问题
