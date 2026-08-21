@@ -19,6 +19,7 @@
         #app {
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             position: relative;
             overflow: hidden;
         }
@@ -1187,4 +1188,97 @@
         }
         .music-list-item {
             position: relative;
+        }
+
+        /* ===== 大屏适配 ===== */
+        @media (min-width: 768px) {
+            #home {
+                gap: 40px;
+            }
+            .game-title {
+                font-size: clamp(40px, 5vw, 64px);
+            }
+            .home-buttons {
+                max-width: 360px;
+            }
+            .btn {
+                padding: 18px 28px;
+                font-size: 17px;
+            }
+            #levelSelect {
+                padding-top: 40px;
+            }
+            .level-list {
+                max-width: 480px;
+            }
+            .collection-header,
+            .tabs,
+            .collection-grid {
+                max-width: 600px;
+            }
+            .loading-content {
+                max-width: 420px;
+            }
+        }
+
+        /* ===== 超宽屏适配 ===== */
+        @media (min-width: 1200px) {
+            #home .home-buttons {
+                max-width: 400px;
+            }
+            .game-title {
+                font-size: 64px;
+            }
+        }
+
+        /* ===== 横屏低高度适配 ===== */
+        @media (orientation: landscape) and (max-height: 500px) {
+            #home {
+                gap: 20px;
+                padding-top: 20px;
+                padding-bottom: 20px;
+            }
+            .game-title {
+                font-size: clamp(24px, 5vh, 36px);
+            }
+            .game-subtitle {
+                font-size: 12px;
+                margin-top: -12px;
+            }
+            .home-buttons {
+                gap: 10px;
+                max-width: 280px;
+            }
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            #loading {
+                gap: 16px;
+            }
+            .loading-content {
+                gap: 16px;
+            }
+            #levelSelect {
+                padding-top: 20px;
+                gap: 16px;
+            }
+            .level-list {
+                gap: 10px;
+            }
+            .level-card {
+                padding: 14px 20px;
+            }
+            .level-avatar {
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
+            }
+        }
+
+        /* ===== 横屏大屏适配 ===== */
+        @media (orientation: landscape) and (min-height: 501px) {
+            #home {
+                gap: 32px;
+            }
         }
