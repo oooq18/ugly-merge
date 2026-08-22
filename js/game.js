@@ -1539,6 +1539,28 @@ function bindInput() {
 function startGame(cl) {
     if (cl === 'hidden' || cl === 'ji') {
         if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
+            // 卡片抖动 + 文字高亮提示
+            var cardId = (cl === 'hidden') ? 'hiddenLevelCard' : 'jiLevelCard';
+            var card = document.getElementById(cardId);
+            var descId = (cl === 'hidden') ? 'hiddenLevelDesc' : 'jiLevelDesc';
+            var desc = document.getElementById(descId);
+            if (card) {
+                card.classList.remove('shake-card');
+                void card.offsetWidth;
+                card.classList.add('shake-card');
+                setTimeout(function() { card.classList.remove('shake-card'); }, 600);
+            }
+            if (desc) {
+                var originalText = desc.textContent;
+                desc.textContent = '任意合成一人通关';
+                desc.style.color = '#ff6b6b';
+                desc.style.fontWeight = '600';
+                setTimeout(function() {
+                    desc.textContent = originalText;
+                    desc.style.color = '';
+                    desc.style.fontWeight = '';
+                }, 2000);
+            }
             showToast('任意合成一人通关');
             return;
         }
