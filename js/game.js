@@ -1539,35 +1539,20 @@ function bindInput() {
 function startGame(cl) {
     if (cl === 'hidden' || cl === 'ji') {
         if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
-            var cardId = (cl === 'hidden') ? 'hiddenLevelCard' : 'jiLevelCard';
-            var descId = (cl === 'hidden') ? 'hiddenLevelDesc' : 'jiLevelDesc';
-            var card = document.getElementById(cardId);
-            var desc = document.getElementById(descId);
-            // 卡片描述变红色提示（先设置样式，再抖动）
-            if (desc) {
-                if (!desc._origText) desc._origText = desc.textContent;
-                desc.textContent = '任意合成一人通关';
-                desc.style.cssText = 'color:#ff4757;font-weight:700;font-size:14px;';
-            }
-            // 临时让卡片不透明
-            if (card) {
-                card.style.opacity = '1';
-                card.classList.remove('shake-card');
-                void card.offsetWidth;
-                card.classList.add('shake-card');
-                setTimeout(function() { card.classList.remove('shake-card'); }, 600);
-            }
-            if (desc) {
-                clearTimeout(desc._timer);
-                desc._timer = setTimeout(function() {
-                    desc.textContent = desc._origText;
-                    desc.style.cssText = '';
-                    if (card) card.style.opacity = '';
-                }, 2500);
-            }
             return;
         }
     }
+    // 混合关卡：先弹提示框
+    if (cl === 'hidden') {
+        showLevelHintModal('任意合成一人通关', function() {
+            enterGame(cl);
+        });
+        return;
+    }
+    enterGame(cl);
+}
+
+function enterGame(cl) {
     currentCharacter = cl;
     // 关卡过渡动画
     const overlay = document.getElementById('transition-overlay');
@@ -1605,6 +1590,32 @@ function savePoster() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+}
+
+// 关卡提示框
+var _levelHintCallback = null;
+function showLevelHintModal(text, callback) {
+    var modal = document.getElementById('levelHintModal');
+    var textEl = document.getElementById('levelHintText');
+    if (modal && textEl) {
+        textEl.textContent = text;
+        _levelHintCallback = callback;
+        modal.classList.add('show');
+    }
+}
+function confirmLevelHint() {
+    var modal = document.getElementById('levelHintModal');
+    if (modal) modal.classList.remove('show');
+    if (_levelHintCallback) {
+        var cb = _levelHintCallback;
+        _levelHintCallback = null;
+        cb();
+    }
+}
+function closeLevelHint() {
+    var modal = document.getElementById('levelHintModal');
+    if (modal) modal.classList.remove('show');
+    _levelHintCallback = null;
 }
 
 // Toast 提示
