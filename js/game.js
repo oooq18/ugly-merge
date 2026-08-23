@@ -450,20 +450,31 @@ function setMusicCover(coverPath) {
     const coverEl = document.querySelector('#music-player .music-cover');
     if (!coverEl) return;
     const myToken = ++_coverToken; // 竞态保护：旧封面的回调会被丢弃
-    if (!coverPath) {
-        coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
-        return;
-    }
-    // 立即创建img并插入DOM，不等onload——封面和音乐同时出现
-    const img = document.createElement('img');
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
-    img.onerror = function() {
-        if (myToken !== _coverToken) return; // 已被新封面替换
-        coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+    const doUpdate = () => {
+        if (myToken !== _coverToken) return;
+        if (!coverPath) {
+            coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+            coverEl.classList.remove('switching');
+            return;
+        }
+        const img = document.createElement('img');
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+        img.onerror = function() {
+            if (myToken !== _coverToken) return;
+            coverEl.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:rgba(255,255,255,0.4);fill:none;stroke-width:1.5;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+            coverEl.classList.remove('switching');
+        };
+        img.onload = function() {
+            if (myToken !== _coverToken) return;
+            coverEl.classList.remove('switching');
+        };
+        img.src = coverPath;
+        coverEl.innerHTML = '';
+        coverEl.appendChild(img);
     };
-    img.src = coverPath;
-    coverEl.innerHTML = '';
-    coverEl.appendChild(img);
+    // 切换动画：先淡出，更新后淡入
+    coverEl.classList.add('switching');
+    setTimeout(doUpdate, 120);
 }
 
 function toggleMusic() {
@@ -491,7 +502,7 @@ function toggleMusic() {
 }
 
 function nextMusic() {
-    playTap();
+    playNext();
     if (!audio) return;
     if (currentPlayingSource === 'local') {
         if (localMusicList.length > 0) {
@@ -514,7 +525,7 @@ function nextMusic() {
 }
 
 function prevMusic() {
-    playTap();
+    playPrev();
     if (!audio) return;
     if (currentPlayingSource === 'local') {
         if (localMusicList.length > 0) {
@@ -1056,6 +1067,76 @@ function playBack() {
     } catch (e) {}
 }
 
+// 失败音：低沉下降，带一点失落感
+function playLose() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const t = audioCtx.currentTime;
+        // 主音：快速下降
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(440, t);
+        osc1.frequency.exponentialRampToValueAtTime(110, t + 0.4);
+        gain1.gain.setValueAtTime(0.15, t);
+        gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(t);
+        osc1.stop(t + 0.45);
+        // 低音铺垫
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(220, t);
+        osc2.frequency.exponentialRampToValueAtTime(80, t + 0.5);
+        gain2.gain.setValueAtTime(0.1, t);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(t);
+        osc2.stop(t + 0.5);
+    } catch (e) {}
+}
+
+// 下一首：轻快上升
+function playNext() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, t);
+        osc.frequency.exponentialRampToValueAtTime(990, t + 0.06);
+        gain.gain.setValueAtTime(0.08, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.08);
+    } catch (e) {}
+}
+
+// 上一首：轻快下降
+function playPrev() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(990, t);
+        osc.frequency.exponentialRampToValueAtTime(660, t + 0.06);
+        gain.gain.setValueAtTime(0.08, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.08);
+    } catch (e) {}
+}
+
 function showScreen(name) {
     playClick();
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1136,6 +1217,7 @@ function unlockPhoto(charLevel, level) {
 let currentTab = 'ma';
 
 function switchTab(tab) {
+    playClick();
     currentTab = tab;
     document.querySelectorAll('.tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === tab);
@@ -1508,6 +1590,7 @@ function triggerWin(character) {
 function triggerLose() {
     if (gameOver) return;
     gameOver = true;
+    playLose();
     document.getElementById('loseScore').textContent = score;
     document.getElementById('loseOverlay').classList.add('show');
 }
