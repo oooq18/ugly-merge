@@ -1336,16 +1336,60 @@
             animation: shakeCard 0.5s ease-in-out;
         }
 
-        /* ===== 未解锁提示 ===== */
-        .level-hint {
-            display: none;
-            width: 100%;
-            color: #ff6b6b;
-            font-size: 15px;
-            font-weight: 700;
-            text-align: center;
-            padding: 8px 0;
+        /* ===== 关卡提示框 ===== */
+        .level-hint-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s, visibility 0.25s;
         }
-        .level-hint.show {
-            display: block;
+        .level-hint-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .level-hint-box {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 32px 28px 24px;
+            text-align: center;
+            max-width: 320px;
+            width: 85%;
+            transform: scale(0.9);
+            transition: transform 0.25s;
+        }
+        .level-hint-modal.show .level-hint-box {
+            transform: scale(1);
+        }
+        .level-hint-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+        .level-hint-text {
+            font-size: 16px;
+            color: #ccc;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .level-hint-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            padding: 12px 36px;
+            border-radius: 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, opacity 0.15s;
+        }
+        .level-hint-btn:active {
+            transform: scale(0.95);
         }
