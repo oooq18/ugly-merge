@@ -1543,23 +1543,21 @@ function startGame(cl) {
             var descId = (cl === 'hidden') ? 'hiddenLevelDesc' : 'jiLevelDesc';
             var card = document.getElementById(cardId);
             var desc = document.getElementById(descId);
-            // 卡片抖动
+            // 卡片描述变红色提示（先设置样式，再抖动）
+            if (desc) {
+                if (!desc._origText) desc._origText = desc.textContent;
+                desc.textContent = '任意合成一人通关';
+                desc.style.cssText = 'color:#ff4757;font-weight:700;font-size:14px;';
+            }
+            // 临时让卡片不透明
             if (card) {
+                card.style.opacity = '1';
                 card.classList.remove('shake-card');
                 void card.offsetWidth;
                 card.classList.add('shake-card');
                 setTimeout(function() { card.classList.remove('shake-card'); }, 600);
             }
-            // 卡片描述变红色提示
             if (desc) {
-                if (!desc._origText) desc._origText = desc.textContent;
-                desc.textContent = '任意合成一人通关';
-                desc.style.cssText = 'color:#ff4757;font-weight:700;font-size:14px;';
-                // 临时让卡片不透明，提示更醒目
-                if (card) {
-                    card.style.transition = 'opacity 0.2s';
-                    card.style.opacity = '1';
-                }
                 clearTimeout(desc._timer);
                 desc._timer = setTimeout(function() {
                     desc.textContent = desc._origText;
