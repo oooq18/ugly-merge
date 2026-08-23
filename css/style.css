@@ -1335,3 +1335,20 @@
         .shake-card {
             animation: shakeCard 0.5s ease-in-out;
         }
+
+        /* ===== 未解锁提示 ===== */
+        .level-hint {
+            color: #ff6b6b;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            min-height: 22px;
+            margin-bottom: 8px;
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity 0.25s, transform 0.25s;
+        }
+        .level-hint.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
