@@ -1554,18 +1554,31 @@ function startGame(cl) {
 
 function enterGame(cl) {
     currentCharacter = cl;
-    // 关卡过渡动画
     const overlay = document.getElementById('transition-overlay');
     overlay.classList.remove('wipe-out');
     overlay.classList.add('wipe-in');
     setTimeout(() => {
         showScreen('game');
-        setTimeout(() => initGame(cl), 50);
-        setTimeout(() => {
-            overlay.classList.remove('wipe-in');
-            overlay.classList.add('wipe-out');
-            setTimeout(() => overlay.classList.remove('wipe-out'), 400);
-        }, 200);
+        if (cl === 'hidden') {
+            // 混合关卡：过渡动画结束后弹提示框
+            setTimeout(() => {
+                overlay.classList.remove('wipe-in');
+                overlay.classList.add('wipe-out');
+                setTimeout(() => {
+                    overlay.classList.remove('wipe-out');
+                    showLevelHintModal('任意合成一人通关', function() {
+                        initGame(cl);
+                    });
+                }, 400);
+            }, 200);
+        } else {
+            setTimeout(() => initGame(cl), 50);
+            setTimeout(() => {
+                overlay.classList.remove('wipe-in');
+                overlay.classList.add('wipe-out');
+                setTimeout(() => overlay.classList.remove('wipe-out'), 400);
+            }, 200);
+        }
     }, 350);
 }
 
