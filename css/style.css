@@ -938,45 +938,50 @@
             gap: 2px;
         }
         #music-player .music-btn {
-            width: 32px;
-            height: 32px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             border: none;
-            background: rgba(255,255,255,0.06);
-            color: rgba(255,255,255,0.7);
+            background: transparent;
+            color: rgba(255,255,255,0.6);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.15s, background 0.15s, transform 0.15s var(--ease-out-quart), box-shadow 0.15s;
+            transition: color 0.2s, background 0.2s, transform 0.2s var(--ease-out-quart);
         }
         #music-player .music-btn svg {
             width: 16px;
             height: 16px;
             stroke: currentColor;
             fill: currentColor;
-            stroke-width: 0;
+            stroke-width: 1.2;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+            paint-order: stroke fill;
         }
         #music-player .music-btn:hover {
             color: #fff;
-            background: rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.08);
         }
         #music-player .music-btn:active {
-            transform: scale(0.88);
-            background: rgba(255,255,255,0.18);
+            transform: scale(0.9);
         }
         #music-player .play-btn {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             background: #fff;
             color: #000;
-            box-shadow: 0 2px 12px rgba(255,255,255,0.25);
         }
         #music-player .play-btn svg {
             width: 14px;
             height: 14px;
             stroke: #000;
             fill: #000;
+            stroke-width: 1.2;
+            stroke-linejoin: round;
+            stroke-linecap: round;
+            paint-order: stroke fill;
         }
         #music-player .play-btn:hover {
             background: #eee;
