@@ -467,6 +467,7 @@ function setMusicCover(coverPath) {
 }
 
 function toggleMusic() {
+    playTap();
     if (!audio) return;
     const hasOnline = musicList.length > 0;
     const hasLocal = localMusicList.length > 0;
@@ -490,6 +491,7 @@ function toggleMusic() {
 }
 
 function nextMusic() {
+    playTap();
     if (!audio) return;
     if (currentPlayingSource === 'local') {
         if (localMusicList.length > 0) {
@@ -512,6 +514,7 @@ function nextMusic() {
 }
 
 function prevMusic() {
+    playTap();
     if (!audio) return;
     if (currentPlayingSource === 'local') {
         if (localMusicList.length > 0) {
@@ -533,6 +536,7 @@ function prevMusic() {
     }
 }
 function toggleMusicList() {
+    playTap();
     const panel = document.getElementById('music-list-panel');
     if (!panel) return;
     if (panel.classList.contains('show')) {
@@ -634,6 +638,7 @@ function renderMusicList() {
 }
 
 function playMusicFromList(source, index) {
+    playTap();
     currentPlayingSource = source;
     if (source === 'online') {
         playMusicAt(index);
@@ -859,95 +864,195 @@ function initAudio() {
     if (!audioCtx) {
         try { audioCtx = new(window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; }
     }
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+    }
 }
+
+// 页面加载即创建 audioCtx，首次用户交互时恢复
+document.addEventListener('DOMContentLoaded', () => {
+    initAudio();
+});
+document.addEventListener('click', () => { initAudio(); }, { once: true });
+document.addEventListener('touchstart', () => { initAudio(); }, { once: true });
+document.addEventListener('keydown', () => { initAudio(); }, { once: true });
 
 function playPop(freq) {
     freq = freq || 440;
     if (!soundEnabled || !audioCtx) return;
     try {
+        const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.frequency.setValueAtTime(freq, t);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, t + 0.1);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.15);
+        osc.start(t);
+        osc.stop(t + 0.15);
     } catch (e) {}
 }
 
 function playMerge(level) {
     if (!soundEnabled || !audioCtx) return;
     try {
+        const t = audioCtx.currentTime;
         const base = 300 + level * 60;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(base, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(base * 2, audioCtx.currentTime + 0.2);
-        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.25);
+        // 主音
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'triangle';
+        osc1.frequency.setValueAtTime(base, t);
+        osc1.frequency.exponentialRampToValueAtTime(base * 2, t + 0.2);
+        gain1.gain.setValueAtTime(0.2, t);
+        gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(t);
+        osc1.stop(t + 0.25);
+        // 泛音
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(base * 2, t);
+        osc2.frequency.exponentialRampToValueAtTime(base * 3, t + 0.15);
+        gain2.gain.setValueAtTime(0.08, t);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(t);
+        osc2.stop(t + 0.18);
     } catch (e) {}
 }
 
 function playWin() {
     if (!soundEnabled || !audioCtx) return;
     try {
-        const notes = [523, 659, 784, 1047];
+        const t = audioCtx.currentTime;
+        const notes = [523, 659, 784, 1047, 1319];
         notes.forEach((f, i) => {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
             osc.frequency.value = f;
-            gain.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.1);
-            gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + i * 0.1 + 0.05);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.1 + 0.3);
+            gain.gain.setValueAtTime(0, t + i * 0.08);
+            gain.gain.linearRampToValueAtTime(0.18, t + i * 0.08 + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.35);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.start(audioCtx.currentTime + i * 0.1);
-            osc.stop(audioCtx.currentTime + i * 0.1 + 0.3);
+            osc.start(t + i * 0.08);
+            osc.stop(t + i * 0.08 + 0.35);
         });
     } catch (e) {}
 }
 
-function playClick() {
+// 主按钮音：开玩、确认 — 双音叠加，明亮有力量
+function playPrimary() {
     if (!soundEnabled || !audioCtx) return;
     try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.06);
-        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.08);
+        const t = audioCtx.currentTime;
+        // 低音主体
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'triangle';
+        osc1.frequency.setValueAtTime(523, t);
+        osc1.frequency.exponentialRampToValueAtTime(784, t + 0.08);
+        gain1.gain.setValueAtTime(0.18, t);
+        gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(t);
+        osc1.stop(t + 0.18);
+        // 高音泛音
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1047, t);
+        osc2.frequency.exponentialRampToValueAtTime(1568, t + 0.06);
+        gain2.gain.setValueAtTime(0.08, t);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(t);
+        osc2.stop(t + 0.12);
     } catch (e) {}
 }
 
-function playBack() {
+// 普通点击音：导航、标签切换 — 轻快单音
+function playClick() {
     if (!soundEnabled || !audioCtx) return;
     try {
+        const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(660, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.08);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(880, t);
+        osc.frequency.exponentialRampToValueAtTime(1175, t + 0.05);
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
+        osc.start(t);
+        osc.stop(t + 0.07);
+    } catch (e) {}
+}
+
+// 卡片点击音：关卡、图鉴 — 有弹性的中低音
+function playCard() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, t);
+        osc.frequency.exponentialRampToValueAtTime(660, t + 0.08);
+        gain.gain.setValueAtTime(0.14, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.14);
+    } catch (e) {}
+}
+
+// 轻触音：音乐控制、小按钮 — 极短轻音
+function playTap() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, t);
+        gain.gain.setValueAtTime(0.06, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.04);
+    } catch (e) {}
+}
+
+// 返回/关闭音：低沉下降
+function playBack() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, t);
+        osc.frequency.exponentialRampToValueAtTime(392, t + 0.1);
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.13);
     } catch (e) {}
 }
 
@@ -1105,7 +1210,7 @@ function downloadPhoto(cl, level) {
 // 图鉴图片旋转放大预览
 function openPhotoPreview(cl, level) {
     if (!isUnlocked(cl, level)) return;
-    playClick();
+    playCard();
     const preview = document.getElementById('photo-preview');
     const img = document.getElementById('previewImg');
     const nameEl = document.getElementById('previewName');
@@ -1574,7 +1679,7 @@ function bindInput() {
 // 8. 游戏控制函数
 // ============================================================
 function startGame(cl) {
-    playClick();
+    playPrimary();
     if (cl === 'hidden' || cl === 'ji') {
         if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
             return;
@@ -1613,7 +1718,7 @@ function enterGame(cl) {
     }, 350);
 }
 
-function restartGame() { playClick(); initGame(currentCharacter); }
+function restartGame() { playPrimary(); initGame(currentCharacter); }
 
 function backToLevelSelect() { playBack(); showScreen('levelSelect'); }
 
@@ -1648,7 +1753,7 @@ function showLevelHintModal(text, callback) {
     }
 }
 function confirmLevelHint() {
-    playClick();
+    playPrimary();
     var modal = document.getElementById('levelHintModal');
     if (modal) modal.classList.remove('show');
     if (_levelHintCallback) {
