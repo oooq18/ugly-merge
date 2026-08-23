@@ -1354,6 +1354,7 @@ let score = 0;
 let isDropping = false;
 let gameOver = false;
 let gameWon = false;
+let gameReady = false; // 游戏是否已初始化完成，防止提示框未确认时交互
 let winCharacter = ''; // 记录通关角色，用于保存高清海报
 let dropX = 0;
 let dropLineY = 100;
@@ -1389,6 +1390,7 @@ function initGame(cl) {
     isDropping = false;
     gameOver = false;
     gameWon = false;
+    gameReady = true;
     document.getElementById('scoreValue').textContent = '0';
     document.getElementById('winOverlay').classList.remove('show');
     document.getElementById('loseOverlay').classList.remove('show');
@@ -1479,7 +1481,7 @@ function updateNextBallPreview() {
 }
 
 function dropBall() {
-    if (isDropping || gameOver || !currentBall) return;
+    if (!gameReady || isDropping || gameOver || !currentBall) return;
     isDropping = true;
     initAudio();
     playPop(300 + currentBall.level * 40);
@@ -1586,6 +1588,7 @@ function handleCollision(event) {
 }
 
 function checkGameOver() {
+    if (!gameReady) return;
     const dangerY = dropLineY + 20;
     let over = false;
     for (let ball of balls) {
@@ -1601,6 +1604,7 @@ function triggerWin(character) {
     if (gameWon) return;
     gameWon = true;
     gameOver = true;
+    gameReady = false;
     winCharacter = character; // 记录通关角色，用于保存高清海报
     playWin();
     document.getElementById('winScore').textContent = score;
@@ -1611,17 +1615,19 @@ function triggerWin(character) {
 function triggerLose() {
     if (gameOver) return;
     gameOver = true;
+    gameReady = false;
     playLose();
     document.getElementById('loseScore').textContent = score;
     document.getElementById('loseOverlay').classList.add('show');
 }
 
 function stopGame() {
+    gameReady = false;
     if (runner) Runner.stop(runner);
 }
 
 function render() {
-    if (currentScreen !== 'game') return;
+    if (currentScreen !== 'game' || !gameReady) return;
     ctx.clearRect(0, 0, gameWidth, gameHeight);
 
     ctx.strokeStyle = 'rgba(255,255,255,0.08)';
@@ -1748,13 +1754,14 @@ function bindInput() {
     }
 
     function onMove(e) {
-        if (gameOver || !currentBall) return;
+        if (!gameReady || gameOver || !currentBall) return;
         const x = getX(e);
         const r = BALL_RADII[currentBall.level - 1];
         dropX = Math.max(r + 10, Math.min(gameWidth - r - 10, x));
     }
 
     function onDown(e) {
+        if (!gameReady) return;
         initAudio();
         if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
         dragging = true;
@@ -1764,7 +1771,7 @@ function bindInput() {
     function onUp(e) {
         if (!dragging) return;
         dragging = false;
-        if (!gameOver && currentBall) { dropBall(); }
+        if (gameReady && !gameOver && currentBall) { dropBall(); }
     }
 
     c.ontouchstart = function(e) { e.preventDefault();
@@ -1797,11 +1804,18 @@ function startGame(cl) {
 
 function enterGame(cl) {
     currentCharacter = cl;
+    gameReady = false; // 锁定游戏，直到 initGame 完成
     const overlay = document.getElementById('transition-overlay');
     overlay.classList.remove('wipe-out');
     overlay.classList.add('wipe-in');
     setTimeout(() => {
         showScreen('game');
+        // 清除上一局残留状态，防止提示框确认前交互触发游戏逻辑
+        balls = [];
+        currentBall = null;
+        isDropping = false;
+        mergeFlashes = [];
+        if (ctx) ctx.clearRect(0, 0, gameWidth, gameHeight);
         if (cl === 'hidden') {
             // 混合关卡：过渡动画结束后弹提示框
             setTimeout(() => {
@@ -1826,9 +1840,10 @@ function enterGame(cl) {
     }, 350);
 }
 
-function restartGame() { playPrimary(); initGame(currentCharacter); }
+let isRestarting = false;
+function restartGame() { if (isRestarting) return; isRestarting = true; playPrimary(); initGame(currentCharacter); setTimeout(()=>{isRestarting=false;}, 500); }
 
-function backToLevelSelect() { isEnteringGame = false; playBack(); showScreen('levelSelect'); }
+function backToLevelSelect() { isEnteringGame = false; gameReady = false; playBack(); showScreen('levelSelect'); }
 
 function toggleSound() {
     soundEnabled = !soundEnabled;
@@ -1874,9 +1889,15 @@ function confirmLevelHint() {
 function closeLevelHint() {
     playBack();
     isEnteringGame = false;
+    gameReady = false;
     var modal = document.getElementById('levelHintModal');
     if (modal) modal.classList.remove('show');
     _levelHintCallback = null;
+    // 关闭提示框后返回关卡选择，不停留在未初始化的游戏界面
+    if (currentScreen === 'game') {
+        stopGame();
+        showScreen('levelSelect');
+    }
 }
 
 // Toast 提示
@@ -1927,7 +1948,7 @@ document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
         if (runner) Runner.stop(runner);
     } else {
-        if (currentScreen === 'game' && runner && !gameOver) {
+        if (currentScreen === 'game' && gameReady && runner && !gameOver) {
             Runner.run(runner, engine);
         }
     }
