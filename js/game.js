@@ -3,7 +3,7 @@
 // ============================================================
 // 在线音乐列表从 assets/music/manifest.json 加载，加新歌只需编辑该JSON
 // 缓存版本号：更新音乐文件后修改此值，强制浏览器重新下载
-const MUSIC_CACHE_VERSION = '2026081cb';
+const MUSIC_CACHE_VERSION = '20260823k';
 let musicList = [];
 let audio = null;
 let currentMusicIndex = -1;
@@ -124,8 +124,8 @@ async function loadMusicManifest() {
         console.warn('加载音乐列表失败，使用默认列表:', e);
         // 兜底默认列表
         musicList = [
-            {src: 'assets/music/错位时空.mp3', name: '错位时空'},
-            {src: 'assets/music/悬溺.mp3', name: '悬溺'},
+            {src: 'assets/music/Copines.mp3', name: 'Copines'},
+            {src: 'assets/music/The Other Side Of Paradise.mp3', name: 'The Other Side Of Paradise'},
         ];
         rebuildShuffleOrder();
     }
