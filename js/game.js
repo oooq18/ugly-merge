@@ -735,6 +735,7 @@ function updateMusicTabIndicator() {
 }
 
 function switchMusicTab(tab) {
+    playClick();
     currentMusicTab = tab;
     document.querySelectorAll('.music-tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === tab);
@@ -888,9 +889,19 @@ document.addEventListener('click', () => { initAudio(); }, { once: true });
 document.addEventListener('touchstart', () => { initAudio(); }, { once: true });
 document.addEventListener('keydown', () => { initAudio(); }, { once: true });
 
+// 音效节流：快速连按时同一个音效 80ms 内不重复播放，避免叠加成噪音
+const _lastSfxTime = {};
+function sfxThrottle(name) {
+    const now = (audioCtx ? audioCtx.currentTime * 1000 : Date.now());
+    if (_lastSfxTime[name] && now - _lastSfxTime[name] < 80) return false;
+    _lastSfxTime[name] = now;
+    return true;
+}
+
 function playPop(freq) {
     freq = freq || 440;
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('pop')) return;
     try {
         const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -909,6 +920,7 @@ function playPop(freq) {
 
 function playMerge(level) {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('merge')) return;
     try {
         const t = audioCtx.currentTime;
         const base = 300 + level * 60;
@@ -941,6 +953,7 @@ function playMerge(level) {
 
 function playWin() {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('win')) return;
     try {
         const t = audioCtx.currentTime;
         const notes = [523, 659, 784, 1047, 1319];
@@ -963,6 +976,7 @@ function playWin() {
 // 主按钮音：开玩、确认 — 双音叠加，明亮有力量
 function playPrimary() {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('primary')) return;
     try {
         const t = audioCtx.currentTime;
         // 低音主体
@@ -995,6 +1009,7 @@ function playPrimary() {
 // 普通点击音：导航、标签切换 — 轻快单音
 function playClick() {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('click')) return;
     try {
         const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -1014,6 +1029,7 @@ function playClick() {
 // 卡片点击音：关卡、图鉴 — 有弹性的中低音
 function playCard() {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('card')) return;
     try {
         const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -1033,6 +1049,7 @@ function playCard() {
 // 轻触音：音乐控制、小按钮 — 极短轻音
 function playTap() {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('tap')) return;
     try {
         const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -1051,6 +1068,7 @@ function playTap() {
 // 返回/关闭音：低沉下降
 function playBack() {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('back')) return;
     try {
         const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -1070,6 +1088,7 @@ function playBack() {
 // 失败音：低沉下降，带一点失落感
 function playLose() {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('lose')) return;
     try {
         const t = audioCtx.currentTime;
         // 主音：快速下降
@@ -1102,6 +1121,7 @@ function playLose() {
 // 下一首：轻快上升
 function playNext() {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('next')) return;
     try {
         const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -1121,6 +1141,7 @@ function playNext() {
 // 上一首：轻快下降
 function playPrev() {
     if (!soundEnabled || !audioCtx) return;
+    if (!sfxThrottle('prev')) return;
     try {
         const t = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
@@ -1138,7 +1159,6 @@ function playPrev() {
 }
 
 function showScreen(name) {
-    playClick();
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(name).classList.add('active');
     currentScreen = name;
@@ -1266,6 +1286,7 @@ function renderCollection() {
 }
 
 function showCollection() {
+    playClick();
     renderCollection();
     showScreen('collection');
 }
@@ -1761,13 +1782,16 @@ function bindInput() {
 // ============================================================
 // 8. 游戏控制函数
 // ============================================================
+let isEnteringGame = false;
 function startGame(cl) {
+    if (isEnteringGame) return; // 防止快速连点重复进入
     playPrimary();
     if (cl === 'hidden' || cl === 'ji') {
         if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
             return;
         }
     }
+    isEnteringGame = true;
     enterGame(cl);
 }
 
@@ -1786,12 +1810,13 @@ function enterGame(cl) {
                 setTimeout(() => {
                     overlay.classList.remove('wipe-out');
                     showLevelHintModal('任意合成一人通关', function() {
+                        isEnteringGame = false;
                         initGame(cl);
                     });
                 }, 400);
             }, 200);
         } else {
-            setTimeout(() => initGame(cl), 50);
+            setTimeout(() => { isEnteringGame = false; initGame(cl); }, 50);
             setTimeout(() => {
                 overlay.classList.remove('wipe-in');
                 overlay.classList.add('wipe-out');
@@ -1803,10 +1828,11 @@ function enterGame(cl) {
 
 function restartGame() { playPrimary(); initGame(currentCharacter); }
 
-function backToLevelSelect() { playBack(); showScreen('levelSelect'); }
+function backToLevelSelect() { isEnteringGame = false; playBack(); showScreen('levelSelect'); }
 
 function toggleSound() {
     soundEnabled = !soundEnabled;
+    if (soundEnabled) playTap();
     document.getElementById('soundOnIcon').style.display = soundEnabled ? '' : 'none';
     document.getElementById('soundOffIcon').style.display = soundEnabled ? 'none' : '';
 }
@@ -1847,6 +1873,7 @@ function confirmLevelHint() {
 }
 function closeLevelHint() {
     playBack();
+    isEnteringGame = false;
     var modal = document.getElementById('levelHintModal');
     if (modal) modal.classList.remove('show');
     _levelHintCallback = null;
