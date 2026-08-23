@@ -1790,8 +1790,13 @@ function bindInput() {
 // 8. 游戏控制函数
 // ============================================================
 let isEnteringGame = false;
+let _enterGameTimers = [];
+function clearEnterGameTimers() {
+    _enterGameTimers.forEach(t => clearTimeout(t));
+    _enterGameTimers = [];
+}
 function startGame(cl) {
-    if (isEnteringGame) return; // 防止快速连点重复进入
+    if (isEnteringGame) return;
     playPrimary();
     if (cl === 'hidden' || cl === 'ji') {
         if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
@@ -1803,47 +1808,71 @@ function startGame(cl) {
 }
 
 function enterGame(cl) {
+    clearEnterGameTimers();
     currentCharacter = cl;
-    gameReady = false; // 锁定游戏，直到 initGame 完成
+    gameReady = false;
+    // 立即清除上一局的结果遮罩和提示框，防止残留
+    var winOv = document.getElementById('winOverlay');
+    var loseOv = document.getElementById('loseOverlay');
+    if (winOv) winOv.classList.remove('show');
+    if (loseOv) loseOv.classList.remove('show');
+    var hintModal = document.getElementById('levelHintModal');
+    if (hintModal) hintModal.classList.remove('show');
+    _levelHintCallback = null;
+
     const overlay = document.getElementById('transition-overlay');
     overlay.classList.remove('wipe-out');
     overlay.classList.add('wipe-in');
-    setTimeout(() => {
+
+    var t1 = setTimeout(() => {
         showScreen('game');
-        // 清除上一局残留状态，防止提示框确认前交互触发游戏逻辑
         balls = [];
         currentBall = null;
         isDropping = false;
         mergeFlashes = [];
         if (ctx) ctx.clearRect(0, 0, gameWidth, gameHeight);
         if (cl === 'hidden') {
-            // 混合关卡：过渡动画结束后弹提示框
-            setTimeout(() => {
+            var t2 = setTimeout(() => {
                 overlay.classList.remove('wipe-in');
                 overlay.classList.add('wipe-out');
-                setTimeout(() => {
+                var t3 = setTimeout(() => {
                     overlay.classList.remove('wipe-out');
+                    if (!isEnteringGame) return; // 用户中途返回了
                     showLevelHintModal('任意合成一人通关', function() {
                         isEnteringGame = false;
-                        initGame(cl);
+                        try { initGame(cl); } catch(e) {
+                            console.error('initGame failed:', e);
+                            backToLevelSelect();
+                        }
                     });
                 }, 400);
+                _enterGameTimers.push(t3);
             }, 200);
+            _enterGameTimers.push(t2);
         } else {
-            setTimeout(() => { isEnteringGame = false; initGame(cl); }, 50);
-            setTimeout(() => {
+            var t2 = setTimeout(() => {
+                isEnteringGame = false;
+                try { initGame(cl); } catch(e) {
+                    console.error('initGame failed:', e);
+                    backToLevelSelect();
+                }
+            }, 50);
+            var t3 = setTimeout(() => {
                 overlay.classList.remove('wipe-in');
                 overlay.classList.add('wipe-out');
-                setTimeout(() => overlay.classList.remove('wipe-out'), 400);
+                var t4 = setTimeout(() => overlay.classList.remove('wipe-out'), 400);
+                _enterGameTimers.push(t4);
             }, 200);
+            _enterGameTimers.push(t2, t3);
         }
     }, 350);
+    _enterGameTimers.push(t1);
 }
 
 let isRestarting = false;
 function restartGame() { if (isRestarting) return; isRestarting = true; playPrimary(); initGame(currentCharacter); setTimeout(()=>{isRestarting=false;}, 500); }
 
-function backToLevelSelect() { isEnteringGame = false; gameReady = false; playBack(); showScreen('levelSelect'); }
+function backToLevelSelect() { clearEnterGameTimers(); isEnteringGame = false; gameReady = false; playBack(); showScreen('levelSelect'); }
 
 function toggleSound() {
     soundEnabled = !soundEnabled;
@@ -1888,16 +1917,16 @@ function confirmLevelHint() {
 }
 function closeLevelHint() {
     playBack();
+    clearEnterGameTimers();
     isEnteringGame = false;
     gameReady = false;
     var modal = document.getElementById('levelHintModal');
     if (modal) modal.classList.remove('show');
     _levelHintCallback = null;
-    // 关闭提示框后返回关卡选择，不停留在未初始化的游戏界面
-    if (currentScreen === 'game') {
-        stopGame();
-        showScreen('levelSelect');
-    }
+    const overlay = document.getElementById('transition-overlay');
+    if (overlay) { overlay.classList.remove('wipe-in'); overlay.classList.remove('wipe-out'); }
+    stopGame();
+    showScreen('levelSelect');
 }
 
 // Toast 提示
