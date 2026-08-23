@@ -1542,13 +1542,6 @@ function startGame(cl) {
             return;
         }
     }
-    // 混合关卡：先弹提示框
-    if (cl === 'hidden') {
-        showLevelHintModal('任意合成一人通关', function() {
-            enterGame(cl);
-        });
-        return;
-    }
     enterGame(cl);
 }
 
