@@ -368,6 +368,13 @@
             display: flex;
             animation: fadeIn 0.3s var(--ease-out-expo);
         }
+        #photo-preview.closing {
+            animation: previewBgClose 0.38s ease forwards;
+        }
+        @keyframes previewBgClose {
+            from { background: rgba(0,0,0,0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+            to { background: rgba(0,0,0,0); backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); }
+        }
         #photo-preview .preview-img-wrap {
             width: min(78vw, 340px);
             height: min(78vw, 340px);
