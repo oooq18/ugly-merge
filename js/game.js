@@ -1539,24 +1539,29 @@ function bindInput() {
 function startGame(cl) {
     if (cl === 'hidden' || cl === 'ji') {
         if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
-            // 卡片抖动
             var cardId = (cl === 'hidden') ? 'hiddenLevelCard' : 'jiLevelCard';
+            var descId = (cl === 'hidden') ? 'hiddenLevelDesc' : 'jiLevelDesc';
             var card = document.getElementById(cardId);
+            var desc = document.getElementById(descId);
+            // 卡片抖动
             if (card) {
                 card.classList.remove('shake-card');
                 void card.offsetWidth;
                 card.classList.add('shake-card');
                 setTimeout(function() { card.classList.remove('shake-card'); }, 600);
             }
-            // 内联提示
-            var hint = document.getElementById('levelHint');
-            if (hint) {
-                hint.textContent = '任意合成一人通关';
-                hint.classList.remove('show');
-                void hint.offsetWidth;
-                hint.classList.add('show');
-                clearTimeout(hint._timer);
-                hint._timer = setTimeout(function() { hint.classList.remove('show'); }, 2500);
+            // 卡片描述变红色提示
+            if (desc) {
+                if (!desc._origText) desc._origText = desc.textContent;
+                desc.textContent = '任意合成一人通关';
+                desc.style.color = '#ff6b6b';
+                desc.style.fontWeight = '700';
+                clearTimeout(desc._timer);
+                desc._timer = setTimeout(function() {
+                    desc.textContent = desc._origText;
+                    desc.style.color = '';
+                    desc.style.fontWeight = '';
+                }, 2500);
             }
             return;
         }
