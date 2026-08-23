@@ -1338,21 +1338,14 @@
 
         /* ===== 未解锁提示 ===== */
         .level-hint {
-            display: block;
+            display: none;
             width: 100%;
-            clear: both;
             color: #ff6b6b;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: 700;
             text-align: center;
-            height: 0;
-            margin: 0;
-            overflow: hidden;
-            opacity: 0;
-            transition: opacity 0.25s, height 0.25s, margin 0.25s;
+            padding: 8px 0;
         }
         .level-hint.show {
-            opacity: 1;
-            height: 24px;
-            margin: 6px 0 2px;
+            display: block;
         }
