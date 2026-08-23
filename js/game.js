@@ -917,7 +917,42 @@ function playWin() {
     } catch (e) {}
 }
 
+function playClick() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+    } catch (e) {}
+}
+
+function playBack() {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {}
+}
+
 function showScreen(name) {
+    playClick();
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(name).classList.add('active');
     currentScreen = name;
@@ -1070,6 +1105,7 @@ function downloadPhoto(cl, level) {
 // 图鉴图片旋转放大预览
 function openPhotoPreview(cl, level) {
     if (!isUnlocked(cl, level)) return;
+    playClick();
     const preview = document.getElementById('photo-preview');
     const img = document.getElementById('previewImg');
     const nameEl = document.getElementById('previewName');
@@ -1086,6 +1122,7 @@ function openPhotoPreview(cl, level) {
     preview.classList.add('show');
 }
 function closePhotoPreview() {
+    playBack();
     const preview = document.getElementById('photo-preview');
     preview.classList.add('closing');
     setTimeout(() => {
@@ -1537,6 +1574,7 @@ function bindInput() {
 // 8. 游戏控制函数
 // ============================================================
 function startGame(cl) {
+    playClick();
     if (cl === 'hidden' || cl === 'ji') {
         if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
             return;
@@ -1575,9 +1613,9 @@ function enterGame(cl) {
     }, 350);
 }
 
-function restartGame() { initGame(currentCharacter); }
+function restartGame() { playClick(); initGame(currentCharacter); }
 
-function backToLevelSelect() { showScreen('levelSelect'); }
+function backToLevelSelect() { playBack(); showScreen('levelSelect'); }
 
 function toggleSound() {
     soundEnabled = !soundEnabled;
@@ -1610,6 +1648,7 @@ function showLevelHintModal(text, callback) {
     }
 }
 function confirmLevelHint() {
+    playClick();
     var modal = document.getElementById('levelHintModal');
     if (modal) modal.classList.remove('show');
     if (_levelHintCallback) {
@@ -1619,6 +1658,7 @@ function confirmLevelHint() {
     }
 }
 function closeLevelHint() {
+    playBack();
     var modal = document.getElementById('levelHintModal');
     if (modal) modal.classList.remove('show');
     _levelHintCallback = null;
