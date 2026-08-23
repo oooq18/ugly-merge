@@ -876,8 +876,8 @@
             to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
         #music-player .music-cover {
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             background: linear-gradient(135deg, #333, #1a1a1a);
             display: flex;
@@ -885,6 +885,11 @@
             justify-content: center;
             flex-shrink: 0;
             border: 1px solid rgba(255,255,255,0.08);
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        #music-player .music-cover.switching {
+            opacity: 0;
+            transform: scale(0.8);
         }
         #music-player .music-cover svg {
             width: 16px;
@@ -933,17 +938,17 @@
             gap: 2px;
         }
         #music-player .music-btn {
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             border: none;
-            background: transparent;
-            color: rgba(255,255,255,0.6);
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.7);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.2s, background 0.2s, transform 0.2s var(--ease-out-quart);
+            transition: color 0.15s, background 0.15s, transform 0.15s var(--ease-out-quart), box-shadow 0.15s;
         }
         #music-player .music-btn svg {
             width: 16px;
@@ -954,16 +959,18 @@
         }
         #music-player .music-btn:hover {
             color: #fff;
-            background: rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.12);
         }
         #music-player .music-btn:active {
-            transform: scale(0.9);
+            transform: scale(0.88);
+            background: rgba(255,255,255,0.18);
         }
         #music-player .play-btn {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             background: #fff;
             color: #000;
+            box-shadow: 0 2px 12px rgba(255,255,255,0.25);
         }
         #music-player .play-btn svg {
             width: 14px;
