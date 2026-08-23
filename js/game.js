@@ -1554,13 +1554,17 @@ function startGame(cl) {
             if (desc) {
                 if (!desc._origText) desc._origText = desc.textContent;
                 desc.textContent = '任意合成一人通关';
-                desc.style.color = '#ff6b6b';
-                desc.style.fontWeight = '700';
+                desc.style.cssText = 'color:#ff4757;font-weight:700;font-size:14px;';
+                // 临时让卡片不透明，提示更醒目
+                if (card) {
+                    card.style.transition = 'opacity 0.2s';
+                    card.style.opacity = '1';
+                }
                 clearTimeout(desc._timer);
                 desc._timer = setTimeout(function() {
                     desc.textContent = desc._origText;
-                    desc.style.color = '';
-                    desc.style.fontWeight = '';
+                    desc.style.cssText = '';
+                    if (card) card.style.opacity = '';
                 }, 2500);
             }
             return;
