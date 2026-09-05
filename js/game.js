@@ -1591,7 +1591,10 @@ function handleCollision(event) {
                 scoreEl.classList.remove('pop');
                 void scoreEl.offsetWidth;
                 scoreEl.classList.add('pop');
-                unlockPhoto(character, newLevel);
+                // 混合关卡中不解锁普通图鉴（与 activateNextBall 逻辑一致）
+                if (!(charPrefix === '' && currentCharacter === 'hidden')) {
+                    unlockPhoto(character, newLevel);
+                }
                 playMerge(newLevel);
                 if (newLevel === 7) {
                     setTimeout(() => triggerWin(character), 800);
