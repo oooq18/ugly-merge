@@ -519,7 +519,8 @@
         }
         .level-card.disabled {
             opacity: 0.5;
-            cursor: pointer;
+            cursor: not-allowed;
+            pointer-events: none; /* 未解锁关卡直接不可点，避免点了只响一声却无反应 */
         }
         .level-card .level-avatar {
             width: 64px;

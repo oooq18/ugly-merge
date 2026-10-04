@@ -254,18 +254,9 @@ function resolveMusicCover(item, callback) {
         callback(item.cover);
         return;
     }
-    const path = typeof item === 'string' ? item : item.src;
-    const base = path.replace(/\.[^/.]+$/, '');
-    const candidates = [base + '.jpg', base + '.png', base + '.jpeg'];
-    let idx = 0;
-    function tryNext() {
-        if (idx >= candidates.length) { callback(null); return; }
-        const img = new Image();
-        img.onload = () => callback(candidates[idx]);
-        img.onerror = () => { idx++; tryNext(); };
-        img.src = candidates[idx];
-    }
-    tryNext();
+    // 不再探测本地同名封面图（assets/music 下没有图片，探测必然 404 刷控制台）。
+    // 封面统一由后续 parseMusicMeta 从 mp3 内嵌 ID3 读取；读不到则列表/播放器用 ♫ 占位。
+    callback(null);
 }
 function playMusicAt(index) {
     if (!audio || musicList.length === 0) return;
@@ -1187,7 +1178,7 @@ function showScreen(name) {
 // 4. 关卡解锁状态（老马老胖通关7级后解锁混合和鸡）
 // ============================================================
 function updateLevelStatus() {
-    const unlocked = isUnlocked('ma', 7) || isUnlocked('pang', 7);
+    const unlocked = isUnlocked('ma', 7) && isUnlocked('pang', 7);
 
     // 隐藏关卡（混合挑战）
     const hiddenCard = document.getElementById('hiddenLevelCard');
@@ -1202,7 +1193,7 @@ function updateLevelStatus() {
         hiddenAvatar.style.fontSize = '32px';
     } else {
         hiddenCard.classList.add('disabled');
-        hiddenDesc.textContent = '任意通关一人解锁';
+        hiddenDesc.textContent = '老马老胖都通关才解锁';
         hiddenArrow.textContent = '🔒';
         hiddenAvatar.textContent = '🔒';
         hiddenAvatar.style.fontSize = '28px';
@@ -1227,7 +1218,7 @@ function updateLevelStatus() {
         if (jiLock) jiLock.style.display = 'none';
     } else {
         jiCard.classList.add('disabled');
-        jiDesc.textContent = '任意通关一人解锁';
+        jiDesc.textContent = '老马老胖都通关才解锁';
         jiArrow.textContent = '🔒';
         // 隐藏图片，显示锁
         if (jiImg) jiImg.style.display = 'none';
@@ -1375,6 +1366,7 @@ let dropX = 0;
 let dropLineY = 100;
 let charPrefix = 'ma';
 let mergeFlashes = [];
+let gameSession = 0; // 局会话号：每开一局自增，旧的延时回调凭它识别"上一局"并丢弃
 
 function resizeCanvas() {
     canvas = document.getElementById('gameCanvas');
@@ -1406,6 +1398,7 @@ function initGame(cl) {
     gameOver = false;
     gameWon = false;
     gameReady = true;
+    gameSession++; // 让上一局还没触发的延时回调自动失效
     document.getElementById('scoreValue').textContent = '0';
     document.getElementById('winOverlay').classList.remove('show');
     document.getElementById('loseOverlay').classList.remove('show');
@@ -1450,6 +1443,8 @@ function initGame(cl) {
     updateNextBallPreview();
 
     Events.on(engine, 'collisionStart', handleCollision);
+    // 每帧检测结束：球叠过危险线且静止时立即判负，不再只靠放球后那次检测
+    Events.on(engine, 'afterUpdate', checkGameOver);
 
     runner = Runner.create();
     Runner.run(runner, engine);
@@ -1517,7 +1512,9 @@ function dropBall() {
     balls.push(ball);
     currentBall = null;
 
+    const sid = gameSession;
     setTimeout(() => {
+        if (sid !== gameSession) return; // 已重开一局，丢弃上一局的放球后续
         if (gameOver) return;
         isDropping = false;
         // 把预览的下一个球提升为当前可操控球
@@ -1567,7 +1564,9 @@ function handleCollision(event) {
                 });
             }
             mergeFlashes.push({ x: midX, y: midY, r: flashR, life: 1, level: newLevel, particles: particles });
+            const sid = gameSession;
             setTimeout(() => {
+                if (sid !== gameSession) return; // 已重开一局，丢弃上一局的合并后续
                 World.remove(world, a);
                 World.remove(world, b);
                 balls = balls.filter(bb => bb !== a && bb !== b);
@@ -1597,7 +1596,7 @@ function handleCollision(event) {
                 }
                 playMerge(newLevel);
                 if (newLevel === 7) {
-                    setTimeout(() => triggerWin(character), 800);
+                    setTimeout(() => { if (sid === gameSession) triggerWin(character); }, 800);
                 }
             }, 50);
             break;
@@ -1817,7 +1816,7 @@ function startGame(cl) {
     if (isEnteringGame) return;
     playPrimary();
     if (cl === 'hidden' || cl === 'ji') {
-        if (!(isUnlocked('ma', 7) || isUnlocked('pang', 7))) {
+        if (!(isUnlocked('ma', 7) && isUnlocked('pang', 7))) {
             return;
         }
     }
@@ -1906,7 +1905,9 @@ function savePoster() {
     if (!src) return;
     const a = document.createElement('a');
     a.href = src;
-    a.download = '终极帅照.jpg';
+    // 下载文件名跟随实际图片格式（鸡关卡高清图是 .jpeg，其余为 .jpg）
+    const extMatch = /\.(jpe?g|png)/i.exec(src);
+    a.download = '终极帅照.' + (extMatch ? extMatch[1].toLowerCase() : 'jpg');
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
