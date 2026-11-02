@@ -1508,6 +1508,7 @@ function dropBall() {
     ball.character = character;
     ball.gameLevel = level;
     ball.merged = false;
+    ball.bornAt = Date.now();
     World.add(world, ball);
     balls.push(ball);
     currentBall = null;
@@ -1581,6 +1582,7 @@ function handleCollision(event) {
                 newBall.character = character;
                 newBall.gameLevel = newLevel;
                 newBall.merged = false;
+                newBall.bornAt = Date.now();
                 Body.setVelocity(newBall, { x: (b.position.x - a.position.x) * 0.5, y: -2 });
                 World.add(world, newBall);
                 balls.push(newBall);
@@ -1607,8 +1609,11 @@ function handleCollision(event) {
 function checkGameOver() {
     if (!gameReady) return;
     const dangerY = dropLineY + 20;
+    const now = Date.now();
     let over = false;
     for (let ball of balls) {
+        // 刚生成的球（1秒内）不参与判负，避免球刚从投放线生成时立即误判
+        if (!ball.bornAt || now - ball.bornAt < 1000) continue;
         if (ball.position.y - BALL_RADII[ball.gameLevel - 1] < dangerY && Math.abs(ball.velocity.y) < 0.5) {
             over = true;
             break;
